@@ -1,0 +1,247 @@
+import { useContext, useRef, useEffect, useState, useCallback, Component } from 'react';
+import {Link, useMatch, useResolvedPath, useNavigate} from 'react-router-dom';
+import Loading from './Loading';
+import TradingViewWidget from './TradingViewWidget';
+import { auth, realTimeDb } from '../firebase';
+import { useUserContext } from './UserRoleContext';
+import { ToastContainer, toast } from "react-toastify";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faEthereum} from "@fortawesome/free-brands-svg-icons";
+import { faWallet, faExchangeAlt, faChartLine, faUser } from "@fortawesome/free-solid-svg-icons"
+import FeeItem from './FeeItem';
+import BtcTaskList from './btcTaskDeposit';
+import { Spinner } from "react-bootstrap"; // Import Bootstrap spinner
+import { Button } from "react-bootstrap";
+import BtcWithdrawList from './btcWithdraw';
+import path from 'path-browserify';
+
+function Home() {
+  const user = auth.currentUser;
+  const { userData, currentUser } = useUserContext();
+  const currencySymbol = userData.currencySymbol;
+  const [isCheckLoading, setIsCheckLoading] = useState(false);
+ 
+const CustomLink = ({ to, children, ...props }) => {
+  const resolvedPath = useResolvedPath(to);
+  const isActive = useMatch({ path: resolvedPath.pathname, end: true });
+
+  return (
+    <li className={isActive ? 'active' : ''}>
+      <Link to={to} {...props}>
+        {children}
+      </Link>
+    </li>
+  );
+};
+
+  const initializeTooltip = (element) => {
+    if (element) {
+      const tooltip = new window.bootstrap.Tooltip(element, {
+        placement: 'top', // Adjust placement as needed
+        title: element.title,
+      });
+    }
+  };
+
+  
+  const tooltipRefTrophy = useRef();
+  const tooltipTitleTrophy = `Events`;
+
+
+  useEffect(() => {
+    initializeTooltip(tooltipRefTrophy.current);
+  }, []);
+  
+  useEffect(() => {
+    // Remove the 'new' key from localStorage
+    localStorage.removeItem('new');
+  }, []);
+
+  const loading = !userData || !("balance" in userData); // Simple loading check
+
+  const spinner = (
+    <div className="d-flex justify-content-center align-items-center" style={{ height: "100px" }}>
+      <Spinner animation="border" role="status">
+        <span className="visually-hidden">Loading...</span>
+      </Spinner>
+    </div>
+  );
+
+
+  const userStyle = {
+    fontSize: '15px',
+  };
+
+  const iconStyle = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "50px",
+    height: "50px",
+    borderRadius: "50%",
+    background: "linear-gradient(135deg, rgba(100, 0, 255, 0.8), rgba(0, 200, 255, 0.8))",
+    boxShadow: "0px 0px 4px rgba(100, 0, 255, 0.6)",
+  };
+  
+  const accBox = {
+    background: "linear-gradient(90deg, rgba(200, 220, 240, 0.9) 0%, rgba(220, 230, 250, 0.85) 100%)",
+    backdropFilter: "blur(8px)",
+    boxShadow: "0 3px 12px rgba(0, 0, 0, 0.1)",
+    borderBottom: "1px solid rgba(0, 0, 0, 0.15)",
+    borderRadius: "10px",
+    minHeight: "140px",
+  };
+  const accHead = {
+    fontSize: '25px',
+    // fontWeight: 'bold',
+  }
+
+  const smaller = {
+    fontSize: '14px'
+  }
+
+  const avatar ={
+    height: '2rem',
+    width: '2rem',
+    borderRadius: '50%'
+  }
+  const taskBoxStyle = {
+    width: '85%',
+    marginLeft: '16.5%',
+    marginRight: '3.5%',
+    height: '330px',
+    backgroundColor: '#1F222D', // White background color
+    color: '#000', // Text color
+    boxShadow: '0 4px 8px 0 rgba(0, 0, 0, 0.2)',
+    overflowY: 'auto',
+  };
+
+  const moreOptions = {
+    width: '85%',
+    marginLeft: '16.5%',
+    marginRight: '3.5%',
+    marginBottom: '10%',
+    height: '170px',
+    backgroundColor: '#1F222D',
+    boxShadow: '0 4px 8px 0 rgba(0, 0, 0, 0.2)',
+    overflowY: 'auto',
+
+  }
+
+  const pointer = {
+    cursor: 'pointer'
+  }
+
+  return (
+   <>
+   <ToastContainer />
+    <div className='container-large'>
+      <div className='container'>
+        {/* link wallet */}
+        <div
+      className="d-flex align-items-center text-start main-container p-3 rounded"
+      style={{
+        background: "linear-gradient(135deg, #6a11cb, #2575fc)",
+        color: "white",
+        borderRadius: "10px",
+        marginBottom: "2rem",
+        // maxWidth: "600px",
+        // width: "100%",
+      }}
+    >
+      {/* Image */}
+      
+      <FontAwesomeIcon icon={faWallet} style={{
+         fontSize: "26px",
+         color: "white",
+         width: "35px",
+         height: "35px",
+         borderRadius: "10px",
+         marginRight: "15px", }} />
+
+      {/* Text Section */}
+      <div className="flex-grow-1">
+        <h5 className="mb-0">Link your wallet</h5>
+        <p className="d-none d-md-block" style={{ fontSize: "0.9rem", opacity: 0.8 }}>
+          Get access to your assets, which are held on your blockchain. A private key to that
+          address, which allows you to authorize transactions.
+        </p>
+      </div>
+
+      {/* Connect Wallet Button */}
+      <Button
+        as={Link}
+        to="/link-wallet"
+        // variant="outline-light"
+        style={{
+          background: 'transparent',
+          border: "2px solid white",
+          borderRadius: "5px",
+          padding: "6px 15px",
+          fontWeight: "bold",
+        }}
+      >
+        Connect Wallet
+      </Button>
+    </div>
+        {/*  */}
+      <div className='main-container tt-Box'>
+        {userData.role === 'agent' ? (<div>
+          <BtcTaskList />
+        </div>):
+        (<>
+        {/* first row */}
+        <div className="row justify-content-around">
+    {[
+    { title: "ETH:", subtext: "BALANCE", icon: faEthereum, value: userData.balance || 0, link: '/deposit' },
+    { title: "ETH:", subtext: "PROFIT", icon: faExchangeAlt, value: userData.returns || 0, link: '/deposit' },
+    { title: "Account Status", subtext: userData.isUserActive ? 'VERIFIED' : 'NOT VERIFIED', icon: faUser, link: '/profile' },
+  ].map(({ title, subtext, icon, value, link }, index) => (
+      <div key={index} className="col-lg-4 mt-2">
+        <Link to={link} style={{ textDecoration: "none" }}>
+          <div className="card bg-secondary" style={{ ...accBox, cursor: "pointer" }}>
+            <div className="card-body">
+              <div className="d-flex align-items-start justify-content-between">
+                <div className="d-block text-start">
+                  <div className="d-flex" style={accHead}>
+                    <span style={{ maxWidth: "105px" }} className="fw-bold">{title}</span>
+                    {loading ? spinner : <span className="mx-2">{value}</span>}
+                  </div>
+                  <span className="clearFont">{subtext}</span>
+                </div>
+                <div style={iconStyle}>
+                  <FontAwesomeIcon icon={icon} style={{ fontSize: "26px", color: "white" }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </Link>
+      </div>
+    ))}
+  </div>
+        </>)
+        }
+    {/* end of top box */}
+    </div>
+    <>
+    {userData.role === 'agent' ? (
+        <div className='main-container mt-5'>
+           <BtcWithdrawList />
+        </div>
+        )
+        :
+        (
+          <>
+          {/* <TradingViewWidget/> */}
+          </>
+        )}
+    </>
+          {/*  */}
+      </div>
+      </div>
+    </>
+      
+  );
+}
+
+export default Home;
