@@ -2,19 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/main_logo.PNG" />
+    <link rel="icon" href="%PUBLIC_URL%/asdf.PNG" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
     <meta
       name="description"
-      content="Minter Fx Pro"
+      content="DeepSea"
     />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/main_logo.PNG" />
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/asdf.PNG" />
     <link rel="stylesheet" href="	https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     <link
   rel="stylesheet"
   href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css"
 />
+<script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs" type="module"></script>
 
     <!-- Include Paystack JavaScript SDK -->
     <script src="https://js.paystack.co/v1/inline.js"></script>
@@ -22,7 +23,7 @@
       manifest.json provides metadata used when your web app is installed on a
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
     -->
-    <link rel="manifest" href="%PUBLIC_URL%/main_logo.PNG" />
+    <link rel="manifest" href="%PUBLIC_URL%/asdf.PNG" />
     <!-- chat widget -->
     <!-- <script>
       document.addEventListener('DOMContentLoaded', async () => {
@@ -36,7 +37,7 @@
           }
     
           // Fetch the user's agentCode
-          const agentCodeResponse = await fetch(`https://broker-app-4xfu.onrender.com/api/getAgentCode/${userId}`);
+          const agentCodeResponse = await fetch(`https://nft-broker.onrender.com/api/getAgentCode/${userId}`);
           
           if (!agentCodeResponse.ok) {
             throw new Error(`Error fetching agent code: ${agentCodeResponse.status}`);
@@ -46,7 +47,7 @@
           const agentCode = agentCodeData.agentCode || 'none';
     
           // Fetch the script based on agentCode
-          const scriptResponse = await fetch(`https://broker-app-4xfu.onrender.com/api/script/${agentCode}`);
+          const scriptResponse = await fetch(`https://nft-broker.onrender.com/api/script/${agentCode}`);
           
           if (!scriptResponse.ok) {
             throw new Error(`Error fetching script: ${scriptResponse.status}`);
@@ -75,10 +76,24 @@
 
     <!-- <script src="//code.jivosite.com/widget/YWlK8SQpMG" async></script> -->
 
+    <!-- Smartsupp Live Chat script -->
+<script type="text/javascript">
+  var _smartsupp = _smartsupp || {};
+  _smartsupp.key = 'df63718e87d648c48bc4f5cdb826dfa5482affc1';
+  window.smartsupp || (function (d) {
+    var s, c, o = smartsupp = function () { o._.push(arguments) }; o._ = [];
+    s = d.getElementsByTagName('script')[0]; c = d.createElement('script');
+    c.type = 'text/javascript'; c.charset = 'utf-8'; c.async = true;
+    c.src = 'https://www.smartsuppchat.com/loader.js?'; s.parentNode.insertBefore(c, s);
+  })(document);
+</script>
+<noscript> Powered by <a href=“https://www.smartsupp.com” target=“_blank”>Smartsupp</a></noscript>
+
+
 
     
     <!-- end of chat widget -->
-    <title>Minter Fx Pro</title>
+    <title>DeepSea NFT Marketplace</title>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

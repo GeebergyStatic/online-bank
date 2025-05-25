@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Spinner } from "react-bootstrap";
 import axios from 'axios';
 
 const EditUserModal = ({ user, onClose, onUserUpdated }) => {
   const [editedUser, setEditedUser] = useState(user);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     setEditedUser(user); // Reset the edited user if 'user' prop changes
@@ -14,13 +16,16 @@ const EditUserModal = ({ user, onClose, onUserUpdated }) => {
   };
 
   const handleSave = async () => {
+    setIsLoading(true);
     try {
-      await axios.put(`https://broker-app-4xfu.onrender.com/api/users/${editedUser._id}`, editedUser);
+      await axios.put(`https://nft-broker.onrender.com/api/users/${editedUser._id}`, editedUser);
 
       onUserUpdated(); // Refresh the user list after saving
       onClose(); // Close the modal after saving
+      setIsLoading(false);
     } catch (error) {
       console.error('Error updating user:', error);
+      setIsLoading(false);
     }
   };
 
@@ -59,26 +64,7 @@ const EditUserModal = ({ user, onClose, onUserUpdated }) => {
               style={inputStyle}
             />
           </div>
-          <div style={inputContainerStyle}>
-            <label style={labelStyle}>Referrals Balance (In USD):</label>
-            <input
-              type="number"
-              name="referralsBalance" 
-              value={editedUser.referralsBalance}
-              onChange={handleChange}
-              style={inputStyle}
-            />
-          </div>
-          <div style={inputContainerStyle}>
-            <label style={labelStyle}>Referred Users:</label>
-            <input
-              type="number"
-              name="referredUsers" 
-              value={editedUser.referredUsers}
-              onChange={handleChange}
-              style={inputStyle}
-            />
-          </div>
+ 
           <div style={inputContainerStyle}>
             <label style={labelStyle}>Account Active?:</label>
             <input
@@ -89,16 +75,7 @@ const EditUserModal = ({ user, onClose, onUserUpdated }) => {
               style={inputStyle}
             />
           </div>
-          <div style={inputContainerStyle}>
-            <label style={labelStyle}>Currency:</label>
-            <input
-              type="text" 
-              name="currencySymbol"
-              value={editedUser.currencySymbol}
-              onChange={handleChange}
-              style={inputStyle}
-            />
-          </div>
+
           <div style={inputContainerStyle}>
             <label style={labelStyle}>Country:</label>
             <input
@@ -110,7 +87,7 @@ const EditUserModal = ({ user, onClose, onUserUpdated }) => {
             />
           </div>
           <div style={inputContainerStyle}>
-            <label style={labelStyle}>Balance (In USD):</label>
+            <label style={labelStyle}>Balance (In ETH):</label>
             <input
               type="number"
               name="balance" 
@@ -120,7 +97,7 @@ const EditUserModal = ({ user, onClose, onUserUpdated }) => {
             />
           </div>
           <div style={inputContainerStyle}>
-            <label style={labelStyle}>Returns (In USD):</label>
+            <label style={labelStyle}>Returns (In ETH):</label>
             <input
               type="number"
               name="returns"
@@ -129,10 +106,15 @@ const EditUserModal = ({ user, onClose, onUserUpdated }) => {
               style={inputStyle}
             />
           </div>
+          {isLoading ? (
+          <Spinner animation="border" size="sm" variant='primary' />
+        ) : (
           <div style={buttonContainerStyle}>
             <button onClick={handleSave} style={saveButtonStyle}>Save</button>
             <button onClick={onClose} style={cancelButtonStyle}>Cancel</button>
           </div>
+        )}
+          
         </form>
       </div>
     </div>

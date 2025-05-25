@@ -16,18 +16,23 @@ function ForgotPasswordModal() {
 
         toast.success(`Password reset email sent!`, {
           toastId: 'toast-send-sucess',
+          className: "custom-toast",
         });
       })
       .catch((error) => {
         setIsLoading(false);
         toast.error(`Failed to send reset email!`, {
             toastId: 'toast-send-fail',
+            className: "custom-toast",
           });
       });
   };
 
   return (
+    <>
+    {/* <div className="modal-backdrop show"></div> */}
     <div className="modal fade" id="forgotPasswordModal" tabIndex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
+      
          <ToastContainer />
       <div className="modal-dialog">
         <div className="modal-content">
@@ -49,6 +54,7 @@ function ForgotPasswordModal() {
       </div>
       {isLoading && <Loading />}
     </div>
+    </>
   );
 }
 

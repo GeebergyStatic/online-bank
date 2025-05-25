@@ -34,6 +34,7 @@ const PaymentBox = ({
       setIsBtnLoading(false);
       toast.warning('Please select a payment method!', {
         position: toast.POSITION.TOP_CENTER,
+        className: "custom-toast",
       });
     }
     
@@ -68,6 +69,7 @@ const PaymentBox = ({
     // Optionally, add a toast notification here
     toast.info('Info Copied Successfully!', {
       position: toast.POSITION.TOP_CENTER,
+      className: "custom-toast",
     });
   };
 

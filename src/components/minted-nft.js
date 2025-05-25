@@ -1,113 +1,150 @@
-import React, { useState } from 'react';
-import { Container, Row, Col, Card, Accordion, Button, Table } from 'react-bootstrap';
-import { Link, useMatch, useResolvedPath, useNavigate } from 'react-router-dom';
-import { useUserContext } from './UserRoleContext';
+import React, { useEffect, useState } from "react";
+import { Container, Row, Col, Card, Badge, Button, Spinner } from "react-bootstrap";
 import { ToastContainer, toast } from "react-toastify";
+import { useUserContext } from "./UserRoleContext";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faInfoCircle } from "@fortawesome/free-solid-svg-icons";
 import "react-toastify/dist/ReactToastify.css";
 
 const Minted = () => {
-    const [tapCount, setTapCount] = useState(0);
-    const [lastTapTime, setLastTapTime] = useState(0);
+  const { userData } = useUserContext();
+  const userId = userData?.userID; 
+  const [nfts, setNfts] = useState([]);
+  const [loading, setLoading] = useState(true); // ✅ Add loading state
+  const [isLoading, setIsLoading] = useState(false);
 
-    const CustomLink = ({ to, children, ...props }) => {
-        const resolvedPath = useResolvedPath(to);
-        const isActive = useMatch({ path: resolvedPath.pathname, end: true });
+  // ✅ Fetch Minted NFTs from API
+  const fetchUserNFTs = async () => {
+    if (!userId) return; 
 
-        return (
-            <li className={isActive ? 'active' : ''}>
-                <Link to={to} {...props}>
-                    {children}
-                </Link>
-            </li>
-        );
-    };
+    setLoading(true); // ✅ Show spinner before fetching
+    try {
+      const response = await fetch(
+        `https://nft-broker.onrender.com/api/fetch-minted-nfts/${userId}`
+      );
+      const data = await response.json();
+      if (response.ok) {
+        setNfts(data);
+      } else {
+        console.log("Error fetching NFTs: " + data.message);
+      }
+    } catch (error) {
+      console.log("Fetch error: " + error.message);
+    }
+    setLoading(false); // ✅ Hide spinner after fetching
+  };
 
-    const { userData, currentUser } = useUserContext();
+  const handleSellNft = async (nft) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`https://nft-broker.onrender.com/api/sell-nft`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: userId,
+          nftId: nft._id,
+          bidPrice: nft.bidPrice,
+        }),
+      });
+  
+      const result = await response.json();
+  
+      if (response.ok) {
+        console.log("NFT Sold!");
+        toast.success("NFT Sold!", {
+          className: "custom-toast",
+        });
+        setIsLoading(false);
+        fetchUserNFTs(); // Refresh the NFT list
+      } else {
+        console.error("Error:", result.message);
+        toast.error(`Failed to sell NFT!: ${result.message}`, {
+          className: "custom-toast",
+        });
+        setIsLoading(false);
+      }
+    } catch (err) {
+      console.error("Sell NFT error:", err.message);
+      setIsLoading(false);
+    }
+  };
+  
 
-    const handleCopy = () => {
-        const tempInput = document.createElement('input');
-        tempInput.value = `https://app.minterpro.online/login?ref=${userData.referralCode}`;
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        document.execCommand('copy');
-        document.body.removeChild(tempInput);
-        toast.info('Referral link copied to clipboard!', { position: toast.POSITION.TOP_CENTER });
-    };
+  useEffect(() => {
+    fetchUserNFTs();
+  }, [userId]);
 
-    const handleCopyCode = () => {
-        const tempInput = document.createElement('input');
-        tempInput.value = userData.referralCode;
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        document.execCommand('copy');
-        document.body.removeChild(tempInput);
-        toast.info('Referral Code copied to clipboard!', { position: toast.POSITION.TOP_CENTER });
-    };
-
-    const handleCopyAgentCode = () => {
-        const tempInput = document.createElement('input');
-        tempInput.value = userData.agentID;
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        document.execCommand('copy');
-        document.body.removeChild(tempInput);
-        toast.info('Agent ID copied to clipboard!', { position: toast.POSITION.TOP_CENTER });
-    };
-
-    const generateAgentID = () => {
-        return "AGENT-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-    };
-
-    const handleProfilePictureTap = async () => {
-        const now = Date.now();
-        if (now - lastTapTime < 2000) {
-            setTapCount(prev => prev + 1);
-        } else {
-            setTapCount(1);
-        }
-        setLastTapTime(now);
-
-        if (tapCount + 1 === 8) {
-            if (userData?.role !== "agent") {
-                try {
-                    const agentID = generateAgentID();
-                    const token = localStorage.getItem("token");
-                    await fetch("https://broker-app-4xfu.onrender.com/api/update-user", {
-                        method: "PUT",
-                        headers: {
-                            "Content-Type": "application/json",
-                            // Authorization: `Bearer ${token}`
-                        },
-                        body: JSON.stringify({ role: "agent", agentID, userId: userData.userID })
-                    });
-
-                    toast.success("You are now an agent!", { position: toast.POSITION.TOP_CENTER });
-
-                    // Refresh the page after 2 seconds
-                      setTimeout(() => {
-                        window.location.reload();
-                    }, 2000);
-
-                } catch (error) {
-                    console.error("Error updating role", error);
-                    toast.error("Could not update role. Try again later.", { position: toast.POSITION.TOP_CENTER });
-                }
-            } else {
-                toast.info("You are already an agent.", { position: toast.POSITION.TOP_CENTER });
-            }
-            setTapCount(0);
-        }
-    };
-
-    return (
-        <div className='container-large'>
-            <ToastContainer />
-            <div className='main-container d-flex justify-content-center'>
-                <p style={{fontSize: 'medium'}} className='text-secondary fw-bold'>You don't have any NFTs.</p>
+  return (
+    <div className="container-large">
+      <Container className="mt-4">
+        <ToastContainer />
+        <div className="main-container">
+          {loading ? ( // ✅ Show spinner when loading
+            <div className="text-center my-5">
+              <Spinner animation="border" size="lg" variant="primary" />
+              <p className="mt-2 text-secondary">Fetching NFTs...</p>
             </div>
-            
+          ) : nfts.length === 0 ? (
+            <div className="text-center text-secondary fw-bold">No available projects.</div>
+          ) : (
+            <Row className="justify-content-center">
+              {!userData.isUserActive && <span className="text-warning mb-1">
+                <FontAwesomeIcon className="mx-2" icon={faInfoCircle} />
+                You are required to have a publisher's license (be verified) to sell your projects!
+              </span>}
+              {nfts.map((nft) => (
+                <Col key={nft._id} md={4} className="mb-4">
+                  <Card className="shadow-lg nft-slide" style={{ width: "100%" }}>
+                    <Card.Img
+                      variant="top"
+                      src={nft.fileUrl}
+                      alt={nft.collectionName}
+                      style={{ height: "250px", objectFit: "cover" }}
+                    />
+                    <Card.Body>
+                      <div className="d-flex justify-content-between align-items-center">
+                        <h5 className="fw-bold">{nft.collectionName}</h5>
+                        <Badge
+                          bg={
+                            nft.status === "successful"
+                              ? "success"
+                              : nft.status === "failed"
+                              ? "danger"
+                              : "warning"
+                          }
+                          className="p-2"
+                        >
+                          <>New Bid 🔥</>
+                        </Badge>
+                      </div>
+                      <p className="text-muted">Created by: {nft.creatorName}</p>
+                      <div className="d-flex justify-content-between">
+                        <span className="fw-bold text-primary">{nft.bidPrice} ETH</span>
+                        <Button variant="success" disabled={!userData.isUserActive || isLoading} size="sm" onClick={() => handleSellNft(nft)}>
+                          
+                          {isLoading ? (
+            <Spinner animation="border" size="sm" className="text-white" />
+          ):
+          (
+            <span>
+            Sell NFT
+            </span>
+          )}
+                        </Button>
+
+                      </div>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              ))}
+            </Row>
+          )}
         </div>
-    );
+      </Container>
+    </div>
+  );
 };
 
 export default Minted;

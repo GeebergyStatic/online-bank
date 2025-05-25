@@ -1,102 +1,94 @@
-// UserContext.js
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
+import { auth } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { ToastContainer, toast } from "react-toastify"; 
+import "react-toastify/dist/ReactToastify.css"; 
+import ScreenLoad from "./screenLoad"; 
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { auth } from '../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import { ToastContainer } from "react-toastify";
-
-// Create the UserContext
 const UserContext = createContext(null);
 
-// Custom hook to use the UserContext
 export const useUserContext = () => {
   const context = useContext(UserContext);
   if (!context) {
-    throw new Error('useUserContext must be used within a UserProvider');
+    throw new Error("useUserContext must be used within a UserProvider");
   }
   return context;
 };
 
-// UserProvider component that wraps your app and provides user data
 export const UserProvider = ({ children }) => {
   const [userData, setUserData] = useState({});
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
+  const [isLoading, setIsLoading] = useState(true);
+  const loadingTimeout = useRef(null); // ✅ Use a ref for timeout
+
+  const fetchUserData = useCallback(async (userId) => {
+    setIsLoading(true);
+
+    try {
+      loadingTimeout.current = setTimeout(() => {
+        setIsLoading(false);
+        toast.error("Check your internet connection and refresh the page.", {
+          className: "custom-toast",
+        });
+      }, 15000); 
+
+      const response = await fetch(`https://nft-broker.onrender.com/api/userDetail/${userId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setUserData({
+        avatar: data.avatar,
+        email: data.email,
+        fullName: data.name,
+        userID: data.userId,
+        agentID: data.agentID,
+        agentCode: data.agentCode,
+        phoneNo: data.number,
+        role: data.role,
+        isUserActive: data.isUserActive,
+        hasPaid: data.hasPaid,
+        deposit: data.deposit,
+        currencySymbol: data.currencySymbol,
+        country: data.country,
+        balance: data.balance,
+        referralsBalance: data.referralsBalance,
+        referredUsers: data.referredUsers,
+        referralCode: data.referralCode,
+        returns: data.returns,
+      });
+
+      clearTimeout(loadingTimeout.current);
+    } catch (error) {
+      toast.error("Failed to load user data.");
+      console.error("Error fetching user data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    // Function to fetch user details from the API
-    const fetchUserData = async (userId) => {
-      try {
-        const response = await fetch(`https://broker-app-4xfu.onrender.com/api/userDetail/${userId}`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const data = await response.json();
-        setUserData({
-          avatar: data.avatar,
-          email: data.email,
-          fullName: data.name,
-          userID: data.userId,
-          agentID: data.agentID,
-          agentCode: data.agentCode,
-          phoneNo: data.number,
-          role: data.role,
-          isUserActive: data.isUserActive,
-          hasPaid: data.hasPaid,
-          deposit: data.deposit,
-          currencySymbol: data.currencySymbol,
-          country: data.country,
-          balance: data.balance,
-          referralsBalance: data.referralsBalance,
-          referredUsers: data.referredUsers,
-          referralCode: data.referralCode,
-          returns: data.returns,
-        });
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-        // Optionally, you can show a toast notification here
-        // toast.error('Failed to fetch user data.');
-      }
-    };
-
-    // Function to check if the user exists in the database
-    const checkUserExists = async (userId) => {
-      try {
-        const response = await fetch(`https://broker-app-4xfu.onrender.com/api/userExists/${userId}`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const data = await response.json();
-        if (data.status) {
-          await fetchUserData(userId);
-        } else {
-          console.log('User does not exist.');
-          // Optionally, handle the case where the user does not exist
-          // e.g., redirect to a signup page or show a message
-        }
-      } catch (error) {
-        console.error('Error checking if user exists:', error);
-        // Optionally, you can show a toast notification here
-        // toast.error('Failed to verify user existence.');
-      }
-    };
-
-    // Listen for authentication state changes
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser(user);
-        checkUserExists(user.uid);
+        await fetchUserData(user.uid);
       } else {
         setCurrentUser(null);
         setUserData({});
+        setIsLoading(false);
       }
     });
 
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
-  }, []);
+    return () => {
+      unsubscribe();
+      clearTimeout(loadingTimeout.current);
+    };
+  }, [fetchUserData]);
 
   return (
-    <UserContext.Provider value={{ userData, setUserData, currentUser }}>
+    <UserContext.Provider value={{ userData, setUserData, currentUser, isLoading, setIsLoading }}>
+      {isLoading && <ScreenLoad />}
       {children}
       <ToastContainer />
     </UserContext.Provider>

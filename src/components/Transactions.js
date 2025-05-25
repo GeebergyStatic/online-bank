@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUserContext } from './UserRoleContext';
 import { ToastContainer, toast } from "react-toastify";
+import { Spinner } from "react-bootstrap";
 import "react-toastify/dist/ReactToastify.css";
 import 'font-awesome/css/font-awesome.min.css'; // Import Font Awesome CSS
 
@@ -19,7 +20,7 @@ const TransactionList = () => {
     setLoading(true); // Set loading to true before fetching
     try {
       const response = await fetch(
-        `https://broker-app-4xfu.onrender.com/api/getUserTransactions?userID=${userID}`
+        `https://nft-broker.onrender.com/api/getUserTransactions?userID=${userID}`
       );
 
       if (!response.ok) {
@@ -32,7 +33,9 @@ const TransactionList = () => {
       setUserTransactions(userTransactionsData);
     } catch (error) {
       console.error('Error fetching user transactions: ', error);
-      toast.error("Failed to fetch transactions. Please try again later.");
+      // console.error("Failed to fetch transactions. Please try again later.", {
+      //   className: "custom-toast",
+      // });
     } finally {
       setLoading(false); // Set loading to false after fetch
     }
@@ -57,7 +60,7 @@ const TransactionList = () => {
   >
     {loading ? (
       <div className="text-center p-5">
-        <i className="fa fa-spinner fa-spin fa-3x fa-fw text-light"></i>
+        <Spinner animation="border" size="md" variant="primary" />
         <p className="text-dark mt-3">Loading Transactions...</p>
       </div>
     ) : (
@@ -93,7 +96,8 @@ const TransactionList = () => {
               <div className="transaction-reference">
                 <span className="fw-bold">Transaction Reference:</span> {transaction.transactionReference}
               </div>
-              <div className="tx-type fw-bold">{transaction.description}</div>
+              <div className="tx-type my-1 fw-bold">{transaction.description}</div>
+              <div className="tx-type my-1">{new Date(transaction.timestamp).toLocaleDateString()}</div>
               <div className="transaction-details d-flex justify-content-between">
                 <span>
                   Transaction{" "}
@@ -104,7 +108,7 @@ const TransactionList = () => {
                     : "Failed"}
                 </span>{" "}
                 <span>
-                  Amount: <span className="fw-bold">${transaction.amount}</span>
+                  Amount: <span className="fw-bold">{transaction.amount} ETH</span>
                 </span>
               </div>
             </div>

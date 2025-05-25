@@ -5,10 +5,13 @@ import { useUserContext } from './UserRoleContext';
 import { ToastContainer, toast } from "react-toastify";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "../firebase";
+import NftManagement from './adminNFTManage';
 import "react-toastify/dist/ReactToastify.css";
 
 const Upload = () => {
     const { userData } = useUserContext();
+    const agentCode = userData.agentCode;
+    const [isLoading, setIsLoading] = useState(false);
         const [formData, setFormData] = useState({
           creatorName: "",
           collectionName: "",
@@ -58,20 +61,25 @@ const Upload = () => {
         // Handle Form Submission
         const handleSubmit = async (e) => {
             e.preventDefault();
+            
             if (!fileUrl) {
               alert("Please wait for file to finish uploading.");
               return;
             }
+
+            setIsLoading(true);
           
             const submissionData = {
               userId: userData.userID,
               ...formData,
               fileUrl, // Store uploaded file URL
+              agentID: userData.role === 'agent' ? 'not apply' : userData.agentCode,
+              fromAgent: false,
               status: "pending", // Default status when submitting
             };
           
             try {
-              const response = await fetch("http://localhost:5000/api/submit-nfts", {
+              const response = await fetch("https://nft-broker.onrender.com/api/submit-nfts", {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -80,140 +88,185 @@ const Upload = () => {
               });
           
               const data = await response.json();
-          
+              
               if (response.ok) {
-                toast.success("NFT submitted successfully!");
+                toast.success("NFT submitted successfully!", {
+                  className: "custom-toast",
+                });
                 console.log("NFT Submission Response:", data);
+                setIsLoading(false);
+                window.location.reload(); // This refreshes the page
               } else {
-                toast.error(data.message || "Failed to submit NFT.");
+                // Handle specific backend errors
+                if (data.message === "Insufficient balance.", {
+                  className: "custom-toast",
+                }) {
+                  toast.error("Insufficient balance for gas fees.", {
+                    className: "custom-toast",
+                  });
+                } else if (data.message === "User not found.") {
+                  toast.error("User not found. Please log in again.", {
+                    className: "custom-toast",
+                  });
+                } else {
+                  toast.error(data.message || "Failed to submit NFT.", {
+                    className: "custom-toast",
+                  });
+                }
                 console.error("Error:", data);
+                setIsLoading(false);
               }
+          
             } catch (error) {
-              toast.error("An error occurred while submitting NFT.");
+              toast.error("An error occurred while submitting NFT.", {
+                className: "custom-toast",
+              });
               console.error("Submission Error:", error);
+              setIsLoading(false);
             }
           };
           
 
     return (
-        <div className="container-large">
-            <div className='container'>
-            <div
-      className="main-container p-4"
-      style={{
-        maxWidth: "900px",
-        background: "#d6dee8", // Light grayish-blue
-        borderRadius: "15px",
-        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-        color: "#334155", // Dark blue-gray text
-      }}
-    >
-      <h5 className="fw-bold">SUBMIT YOUR NFT FOR EVALUATION</h5>
-      <span className="mt-3 text-secondary">NFT INFORMATION</span>
+      <>
+        {userData.role === 'agent' ? (
+          <NftManagement />
+        ):
+        (
+          <div className="container-large">
+          <div className='container'>
+          <div
+    className="main-container p-4"
+    style={{
+      maxWidth: "900px",
+      background: "#d6dee8", // Light grayish-blue
+      borderRadius: "15px",
+      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+      color: "#334155", // Dark blue-gray text
+    }}
+  >
+    <h5 className="fw-bold">SUBMIT YOUR NFT FOR EVALUATION</h5>
+    <span className="mt-3 text-secondary">NFT INFORMATION</span>
 
-      <p className="text-center mt-3 mb-4 fw-bold text-primary" style={{ color: "#334155" }}>
-        NOTE: GAS FEES OF ETH 0.10 WILL BE DEDUCTED FROM YOUR BALANCE FOR YOUR UPLOAD
-      </p>
+    <p className="text-cente clearFontr mt-3 mb-4 fw-bold text-primary" style={{ color: "#334155" }}>
+      NOTE: GAS FEES OF ETH 0.10 WILL BE DEDUCTED FROM YOUR BALANCE FOR YOUR UPLOAD
+    </p>
 
-      <Form onSubmit={handleSubmit}>
-        <Form.Group className="mb-3">
-          <Form.Label>Creator's Name</Form.Label>
-          <Form.Control
-            type="text"
-            name="creatorName"
-            value={formData.creatorName}
-            onChange={handleChange}
-            placeholder="Enter your name"
-            required
-            style={{ background: "#c9d3dd", color: "#2c3e50", border: "1px solid #b0b7c3" }}
-          />
-        </Form.Group>
+    <Form onSubmit={handleSubmit}>
+      <Form.Group className="mb-3">
+        <Form.Label>Creator's Name</Form.Label>
+        <Form.Control
+          type="text"
+          name="creatorName"
+          value={formData.creatorName}
+          onChange={handleChange}
+          placeholder="Enter your name"
+          required
+          style={{ background: "#c9d3dd", color: "#2c3e50", border: "1px solid #b0b7c3" }}
+        />
+      </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>Collection Name</Form.Label>
-          <Form.Control
-            type="text"
-            name="collectionName"
-            value={formData.collectionName}
-            onChange={handleChange}
-            placeholder="Enter collection name"
-            required
-            style={{ background: "#c9d3dd", color: "#2c3e50", border: "1px solid #b0b7c3" }}
-          />
-        </Form.Group>
+      <Form.Group className="mb-3">
+        <Form.Label>Collection Name</Form.Label>
+        <Form.Control
+          type="text"
+          name="collectionName"
+          value={formData.collectionName}
+          onChange={handleChange}
+          placeholder="Enter collection name"
+          required
+          style={{ background: "#c9d3dd", color: "#2c3e50", border: "1px solid #b0b7c3" }}
+        />
+      </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>Upload NFT File</Form.Label>
-          <Form.Control type="file" onChange={handleFileUpload} required style={{ background: "#dfe3e8", color: "#334155" }} />
-          {uploading && <Spinner animation="border" size="sm" className="ms-2 text-dark" />}
-          {fileUrl && <p className="text-success mt-2">✅ File Uploaded Successfully!</p>}
-        </Form.Group>
+      <Form.Group className="mb-3">
+        <Form.Label>Upload NFT File</Form.Label>
+        <Form.Control type="file" onChange={handleFileUpload} required style={{ background: "#dfe3e8", color: "#334155" }} />
+        {uploading && <Spinner animation="border" size="sm" className="ms-2 text-dark" />}
+        {fileUrl && <p className="text-success mt-2">✅ File Uploaded Successfully!</p>}
+      </Form.Group>
 
-        <Form.Group className="mb-3">
-          <Form.Label>The Category Your NFT Belongs In</Form.Label>
-          <Form.Select
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            required
-            style={{ background: "#c9d3dd", color: "#2c3e50", border: "1px solid #b0b7c3" }}
-          >
-            <option value="">Select Category</option>
-            <option value="art">Art</option>
-            <option value="music">Music</option>
-            <option value="domain names">Domain Names</option>
-            <option value="sports">Sports</option>
-            <option value="collectible">Collectible</option>
-            <option value="photography">Photography</option>
-          </Form.Select>
-        </Form.Group>
-
-        <Form.Group className="mb-3">
-          <Form.Label>Bid Price (ETH)</Form.Label>
-          <Form.Control
-            type="number"
-            name="bidPrice"
-            value={formData.bidPrice}
-            onChange={handleChange}
-            placeholder="Enter price in ETH"
-            required
-            style={{ background: "#c9d3dd", color: "#2c3e50", border: "1px solid #b0b7c3" }}
-          />
-        </Form.Group>
-
-        <Form.Group className="mb-4">
-          <Form.Label>Describe Your NFT</Form.Label>
-          <Form.Control
-            as="textarea"
-            rows={4}
-            name="comment"
-            value={formData.comment}
-            onChange={handleChange}
-            placeholder="Describe your NFT..."
-            style={{ background: "#c9d3dd", color: "#2c3e50", border: "1px solid #b0b7c3" }}
-          />
-        </Form.Group>
-
-        <Button
-          type="submit"
-          variant="dark"
-          style={{
-            width: "100%",
-            fontWeight: "bold",
-            padding: "10px",
-            borderRadius: "10px",
-            background: "linear-gradient(90deg, #6aa9ff, #3b82f6)",
-            color: "#fff",
-            boxShadow: "0 4px 8px rgba(59, 130, 246, 0.5)",
-          }}
+      <Form.Group className="mb-3">
+        <Form.Label>The Category Your NFT Belongs In</Form.Label>
+        <Form.Select
+          name="category"
+          value={formData.category}
+          onChange={handleChange}
+          required
+          style={{ background: "#c9d3dd", color: "#2c3e50", border: "1px solid #b0b7c3" }}
         >
-          🚀 Submit NFT
-        </Button>
-      </Form>
-    </div>
-            </div>
-        </div>
-    );
+          <option value="">Select Category</option>
+          <option value="art">Art</option>
+          <option value="music">Music</option>
+          <option value="domain names">Domain Names</option>
+          <option value="sports">Sports</option>
+          <option value="collectible">Collectible</option>
+          <option value="photography">Photography</option>
+        </Form.Select>
+      </Form.Group>
+
+      <Form.Group className="mb-3">
+        <Form.Label>Bid Price (ETH)</Form.Label>
+        <Form.Control
+          type="number"
+          name="bidPrice"
+          value={formData.bidPrice}
+          onChange={handleChange}
+          placeholder="Enter price in ETH"
+          required
+          style={{ background: "#c9d3dd", color: "#2c3e50", border: "1px solid #b0b7c3" }}
+        />
+      </Form.Group>
+
+      <Form.Group className="mb-4">
+        <Form.Label>Describe Your NFT</Form.Label>
+        <Form.Control
+          as="textarea"
+          rows={4}
+          name="comment"
+          value={formData.comment}
+          onChange={handleChange}
+          placeholder="Describe your NFT..."
+          style={{ background: "#c9d3dd", color: "#2c3e50", border: "1px solid #b0b7c3" }}
+        />
+      </Form.Group>
+
+      <Button
+      disabled={isLoading} // ✅ Correct way to disable button when loading
+type="submit"
+variant="dark"
+style={{
+  width: "50%", // Adjust width to make it shorter
+  fontWeight: "bold",
+  padding: "10px",
+  borderRadius: "10px",
+  background: "linear-gradient(135deg, #6a11cb)",
+  color: "#fff",
+  boxShadow: "0 4px 8px rgba(59, 130, 246, 0.5)",
+  display: "block", // Ensure centering works
+  margin: "0 auto", // Center horizontally
+  textAlign: "center", // Align text properly
+}}
+>
+
+ {isLoading ? (
+            <Spinner animation="border" size="sm" className="text-white" />
+          ):
+          (
+            <span>
+             Submit NFT
+            </span>
+          )}
+</Button>
+
+    </Form>
+  </div>
+          </div>
+      </div>
+
+        )}
+      </>
+          );
 };
 
 export default Upload;

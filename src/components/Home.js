@@ -9,10 +9,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEthereum} from "@fortawesome/free-brands-svg-icons";
 import { faWallet, faExchangeAlt, faChartLine, faUser } from "@fortawesome/free-solid-svg-icons"
 import FeeItem from './FeeItem';
-import BtcTaskList from './btcTaskDeposit';
+import NftDepositList from './adminNFTDeposit';
 import { Spinner } from "react-bootstrap"; // Import Bootstrap spinner
 import { Button } from "react-bootstrap";
-import BtcWithdrawList from './btcWithdraw';
+import NftWithdrawList from './adminNFTWithdraw';
+import NftSubmittedList from './adminSubmittedNFT';
+import ScreenLoad from './screenLoad';
 import path from 'path-browserify';
 
 function Home() {
@@ -20,6 +22,8 @@ function Home() {
   const { userData, currentUser } = useUserContext();
   const currencySymbol = userData.currencySymbol;
   const [isCheckLoading, setIsCheckLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('deposit');
+
  
 const CustomLink = ({ to, children, ...props }) => {
   const resolvedPath = useResolvedPath(to);
@@ -133,113 +137,144 @@ const CustomLink = ({ to, children, ...props }) => {
   }
 
   return (
-   <>
-   <ToastContainer />
+    <>
+    <ToastContainer />
     <div className='container-large'>
       <div className='container'>
         {/* link wallet */}
         <div
-      className="d-flex align-items-center text-start main-container p-3 rounded"
-      style={{
-        background: "linear-gradient(135deg, #6a11cb, #2575fc)",
-        color: "white",
-        borderRadius: "10px",
-        marginBottom: "2rem",
-        // maxWidth: "600px",
-        // width: "100%",
-      }}
-    >
-      {/* Image */}
-      
-      <FontAwesomeIcon icon={faWallet} style={{
-         fontSize: "26px",
-         color: "white",
-         width: "35px",
-         height: "35px",
-         borderRadius: "10px",
-         marginRight: "15px", }} />
-
-      {/* Text Section */}
-      <div className="flex-grow-1">
-        <h5 className="mb-0">Link your wallet</h5>
-        <p className="d-none d-md-block" style={{ fontSize: "0.9rem", opacity: 0.8 }}>
-          Get access to your assets, which are held on your blockchain. A private key to that
-          address, which allows you to authorize transactions.
-        </p>
-      </div>
-
-      {/* Connect Wallet Button */}
-      <Button
-        as={Link}
-        to="/link-wallet"
-        // variant="outline-light"
-        style={{
-          background: 'transparent',
-          border: "2px solid white",
-          borderRadius: "5px",
-          padding: "6px 15px",
-          fontWeight: "bold",
-        }}
-      >
-        Connect Wallet
-      </Button>
-    </div>
-        {/*  */}
-      <div className='main-container tt-Box'>
-        {userData.role === 'agent' ? (<div>
-          <BtcTaskList />
-        </div>):
-        (<>
-        {/* first row */}
-        <div className="row justify-content-around">
-    {[
-    { title: "ETH:", subtext: "BALANCE", icon: faEthereum, value: userData.balance || 0, link: '/deposit' },
-    { title: "ETH:", subtext: "PROFIT", icon: faExchangeAlt, value: userData.returns || 0, link: '/deposit' },
-    { title: "Account Status", subtext: userData.isUserActive ? 'VERIFIED' : 'NOT VERIFIED', icon: faUser, link: '/profile' },
-  ].map(({ title, subtext, icon, value, link }, index) => (
-      <div key={index} className="col-lg-4 mt-2">
-        <Link to={link} style={{ textDecoration: "none" }}>
-          <div className="card bg-secondary" style={{ ...accBox, cursor: "pointer" }}>
-            <div className="card-body">
-              <div className="d-flex align-items-start justify-content-between">
-                <div className="d-block text-start">
-                  <div className="d-flex" style={accHead}>
-                    <span style={{ maxWidth: "105px" }} className="fw-bold">{title}</span>
-                    {loading ? spinner : <span className="mx-2">{value}</span>}
-                  </div>
-                  <span className="clearFont">{subtext}</span>
-                </div>
-                <div style={iconStyle}>
-                  <FontAwesomeIcon icon={icon} style={{ fontSize: "26px", color: "white" }} />
-                </div>
-              </div>
-            </div>
+          className="d-flex align-items-center text-start main-container p-3 rounded"
+          style={{
+            background: "linear-gradient(135deg, #6a11cb, #2575fc)",
+            color: "white",
+            borderRadius: "10px",
+            marginBottom: "2rem",
+          }}
+        >
+          {/* Image */}
+          <FontAwesomeIcon icon={faWallet} style={{
+            fontSize: "26px",
+            color: "white",
+            width: "35px",
+            height: "35px",
+            borderRadius: "10px",
+            marginRight: "15px",
+          }} />
+  
+          {/* Text Section */}
+          <div className="flex-grow-1">
+            <h5 className="mb-0">Link your wallet</h5>
+            <p className="d-none d-md-block" style={{ fontSize: "0.9rem", opacity: 0.8 }}>
+              Get access to your assets, which are held on your blockchain. A private key to that
+              address, which allows you to authorize transactions.
+            </p>
           </div>
-        </Link>
-      </div>
-    ))}
-  </div>
-        </>)
-        }
-    {/* end of top box */}
-    </div>
-    <>
-    {userData.role === 'agent' ? (
-        <div className='main-container mt-5'>
-           <BtcWithdrawList />
+  
+          {/* Connect Wallet Button */}
+          <Button
+            as={Link}
+            to="/link-wallet"
+            style={{
+              background: 'transparent',
+              border: "2px solid white",
+              borderRadius: "5px",
+              padding: "6px 15px",
+              fontWeight: "bold",
+            }}
+          >
+            Connect Wallet
+          </Button>
         </div>
-        )
-        :
-        (
-          <>
-          {/* <TradingViewWidget/> */}
-          </>
-        )}
-    </>
-          {/*  */}
+  
+        <div className='main-container'>
+          {userData.role === 'agent' ? (
+            <>
+              {/* Toggle Buttons */}
+              <div 
+                className="d-flex flex-wrap justify-content-center mb-4" 
+                style={{ gap: '0.5rem' }}
+              >
+                <button
+                  className={`btn ${activeTab === 'deposit' ? 'btn-primary' : 'btn-outline-primary'}`}
+                  style={{ minWidth: '120px', flex: '1 1 auto' }}
+                  onClick={() => setActiveTab('deposit')}
+                >
+                  Deposits
+                </button>
+                <button
+                  className={`btn ${activeTab === 'withdraw' ? 'btn-primary' : 'btn-outline-primary'}`}
+                  style={{ minWidth: '120px', flex: '1 1 auto' }}
+                  onClick={() => setActiveTab('withdraw')}
+                >
+                  Withdrawals
+                </button>
+                <button
+                  className={`btn ${activeTab === 'submitted' ? 'btn-primary' : 'btn-outline-primary'}`}
+                  style={{ minWidth: '120px', flex: '1 1 auto' }}
+                  onClick={() => setActiveTab('submitted')}
+                >
+                  Submitted NFTs
+                </button>
+              </div>
+
+  
+              {/* Content based on selected tab */}
+              <div>
+                {activeTab === 'deposit' && (
+                  <div>
+                    <NftDepositList />
+                  </div>
+                )}
+                {activeTab === 'withdraw' && (
+                  <div>
+                    <NftWithdrawList />
+                  </div>
+                )}
+                {activeTab === 'submitted' && (
+                  <div>
+                    <NftSubmittedList />
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* first row */}
+              <div className="row justify-content-around">
+                {[
+                  { title: "ETH:", subtext: "BALANCE", icon: faEthereum, value: userData.balance ? (userData.balance).toFixed(2) : 0.00 || 0, link: '/deposit' },
+                  { title: "ETH:", subtext: "PROFIT", icon: faExchangeAlt, value: userData.returns ? (userData.returns).toFixed(2) : 0.00 || 0, link: '/deposit' },
+                  { title: "Account Status", subtext: userData.isUserActive ? 'VERIFIED' : 'NOT VERIFIED', icon: faUser, link: '/profile' },
+                ].map(({ title, subtext, icon, value, link }, index) => (
+                  <div key={index} className="col-lg-4 mt-2">
+                    <Link to={link} style={{ textDecoration: "none" }}>
+                      <div className="card bg-secondary" style={{ ...accBox, cursor: "pointer" }}>
+                        <div className="card-body">
+                          <div className="d-flex align-items-start justify-content-between">
+                            <div className="d-block text-start">
+                              <div className="d-flex" style={accHead}>
+                                <span style={{ maxWidth: "105px" }} className="fw-bold">{title}</span>
+                                {loading ? "---" : <span className="mx-2">{value}</span>}
+                              </div>
+                              <span className="clearFont">{subtext}</span>
+                            </div>
+                            <div style={iconStyle}>
+                              <FontAwesomeIcon icon={icon} style={{ fontSize: "26px", color: "white" }} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
-      </div>
-    </>
+    </div>
+  </>
+  
       
   );
 }

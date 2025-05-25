@@ -113,7 +113,7 @@
   /* Add any additional styling for the modal content here */
 }
 
-.form-control{
+.form-control, .form-select{
   border: none !important;
   border-bottom: 2px solid #9F00FF !important;
 }
@@ -294,6 +294,8 @@
 .co-4{
   flex: 4;
 }
+
+
 
 /* Add these custom styles to your CSS file or in your component */
 .custom-card {

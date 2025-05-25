@@ -1,44 +1,83 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useUserContext } from './UserRoleContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { faSpinner, faCopy } from '@fortawesome/free-solid-svg-icons';
 import { ToastContainer, toast } from "react-toastify";
-import { Form, Button, Alert } from "react-bootstrap";
+import { Form, Button, Alert, Spinner } from "react-bootstrap";
 import "react-toastify/dist/ReactToastify.css";
 import { v4 as uuidv4 } from "uuid";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { storage } from "../firebase";
 import axios from 'axios';
 import PaymentBox from './PaymentBox';
 import Loading from './Loading';
 
 
 const PaymentModal = () => {
-  const { userData, currentUser } = useUserContext();
+  const { userData } = useUserContext();
   const userEmail = userData.email;
   const userID = userData.userID;
   const username = userData.fullName;
   const agentCode = userData.agentCode;
-  const [fundAmount, setFundAmount] = useState('');
-  const [selectedFundValue, setSelectedFundValue] = useState('');
-  const [fundAddress, setFundAddress] = useState(null);
   const [walletAddresses, setWalletAddresses] = useState([]);
-  const [showAddress, setShowAddress] = useState(false);
-  const [tetherInfo, setTetherInfo] = useState({ usdtAddress: '', usdtMemo: '' });
-  const [isFundBtnLoading, setIsFundBtnLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [selectedWallet, setSelectedWallet] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [fileUrl, setFileUrl] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   // 
   const [formData, setFormData] = useState({
-    cryptoWallet: "ETH",
-    paymentProof: null,
+    file: null,
+    amount: "",
   });
 
-  const handleFileChange = (e) => {
-    setFormData({ ...formData, paymentProof: e.target.files[0] });
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(selectedWallet.address);
+    toast.info("Address copied to clipboard!", { 
+      position: "top-right", 
+      className: "custom-toast",
+      autoClose: 3000, 
+      hideProgressBar: false, 
+      closeOnClick: true, 
+      pauseOnHover: true, 
+      draggable: true 
+    });
+  };
+
+  // Handle Input Change
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    setFormData((prev) => ({ ...prev, file }));
+
+    if (file) {
+      setUploading(true);
+      const storageRef = ref(storage, `nft-deposit-files/${file.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          // Optional: Track upload progress
+        },
+        (error) => {
+          console.error("Upload error:", error);
+          setUploading(false);
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          setFileUrl(downloadURL);
+          setUploading(false);
+        }
+      );
+    }
   };
 
   useEffect(() => {
-    if (!agentCode) return; // Ensure agentCode is available before making the request
-  
-    fetch(`https://broker-app-4xfu.onrender.com/api/fetchWallets?agentCode=${agentCode}`)
+    fetch(`https://nft-broker.onrender.com/api/fetchWallets`)
       .then(response => response.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -51,178 +90,61 @@ const PaymentModal = () => {
         console.error('Failed to fetch wallet addresses:', err);
         setWalletAddresses([]);
       });
-  }, [agentCode]); // Add agentCode as a dependency to re-fetch if it changes
+  }, []); // Add agentCode as a dependency to re-fetch if it changes
   
 
-  const generateTransactionReference = (length) => {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let customReference = '';
-    for (let i = 0; i < length; i++) {
-        const randomIndex = Math.floor(Math.random() * characters.length);
-        customReference += characters[randomIndex];
-    }
-    return customReference;
-    }
+
   
 
-  const saveBtcTransactionData = async (email, amount, userID, status, paymentID, username) => {
-  
-    const reference = uuidv4();
-    const txDetails = {
-      transactionReference: `tx-${reference}`,
-      email,
-      amount,
-      userID,
-      status, // Include the status field
-      timestamp: new Date(),
-      transactionType: 'Deposit',
-      paymentID,
-      username,
-      description: 'Deposit',
-    };
-  
-    try {
-      const response = await fetch(`https://broker-app-4xfu.onrender.com/api/createTransactions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(txDetails),
-      });
-  
-      if (!response.ok) {
-        throw new Error(`Failed to save BTC transaction: ${response.statusText}`);
-      }
-  
-      const data = await response.json();
-      console.log('BTC transaction saved successfully:', data);
-    } catch (error) {
-      console.error('Error saving BTC transaction:', error.message);
-    }
-  };
-  
-  // Save temp crypto transaction
-  const saveTempCryptoData = async (userID, payment_status, pay_address, price_amount, paymentID, username) => {
-  
-    const paymentData = {
-      userID,
-      payment_status,
-      pay_address,
-      price_amount,
-      paymentID,
-      username,
-      description: 'Deposit',
-    };
-  
-    try {
-      const response = await fetch(`https://broker-app-4xfu.onrender.com/api/saveCryptoPayments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(paymentData),
-      });
-  
-      if (!response.ok) {
-        throw new Error(`Failed to save crypto payment: ${response.statusText}`);
-      }
-  
-      const data = await response.json();
-      console.log('Crypto payment saved successfully:', data);
-    } catch (error) {
-      console.error('Error saving crypto payment:', error.message);
-    }
-  };
-  
 
-  const handleFundDropdownChange = (e, amount) => {
-    if (fundAmount < 10) {
-      toast.warning('Fund amount must be at least $10.', {
-        position: toast.POSITION.TOP_CENTER,
-      });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!fileUrl) {
+      alert("Please wait for file to finish uploading.");
       return;
     }
-    const selectedOption = e.target.value;
-    setSelectedFundValue(selectedOption);
+    setIsLoading(true);
   
-    // Fetch the corresponding wallet address (and memo for tether) based on the selection
-    const selectedWallet = walletAddresses.find(wallet => wallet.type === selectedOption);
+    const submissionData = {
+      userId: userData.userID,
+      ...formData,
+      fileUrl, // Store uploaded file URL
+      agentID: agentCode,
+      status: "pending", // Default status when submitting
+    };
   
-    if (selectedOption.toLowerCase() === 'xrp' && selectedWallet) {
-      setTetherInfo({ usdtAddress: selectedWallet.address, usdtMemo: selectedWallet.memo });
-      setFundAddress(null); // Hide the single address input for Tether case
-      // handleSaveTransaction(amount);
-    } else {
-      setFundAddress(selectedWallet ? selectedWallet.address : null);
-      setTetherInfo({ usdtAddress: '', usdtMemo: '' });
-      // handleSaveTransaction(amount);
-    }
-  };
+    try {
+      const response = await fetch("https://nft-broker.onrender.com/api/nft-deposit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(submissionData),
+      });
   
-
-  const handleSaveTransaction = (amount) => {
-    // Here, you would generate a payment address or save the transaction
-    console.log(`Saving transaction for amount: ${amount}`);
-    const paymentID = generateTransactionReference(10);
+      const data = await response.json();
   
-    saveBtcTransactionData(userEmail, amount, userID, 'pending', `pID-${paymentID}`, username);
-    saveTempCryptoData(userID, 'pending', 'random', amount, `pID-${paymentID}`, username);
-  };
-  
-  const handleDebitUser = async (amount) => {
-    const user_balance = userData.balance;
-    if(user_balance && amount && user_balance >= amount){
-      // Implement the logic to debit the user for the specific amount
-      console.log(`Debiting user for amount: ${amount}`);
-      try {
-        const response = await axios.post('https://broker-app-4xfu.onrender.com/api/debitUser', {
-          userId: userID,
-          fee: parseFloat(amount), // Ensure fee is a number
+      if (response.ok) {
+        toast.success("ETH deposit submitted successfully!", {
+          className: "custom-toast",
         });
-
-        if (response.status === 200) {
-          console.log('User debited successfully!');
-        }
-      } catch (err) {
-        console.error('Error adding participant:', err);
+        console.log("ETH deposit Submission Response:", data);
+        setIsLoading(false);
+      } else {
+        toast.error(data.message || "Failed to submit ETH deposit.", {
+          className: "custom-toast",
+        });
+        console.error("Error:", data);
+        setIsLoading(false);
       }
-    }
-    else{
-      toast.error(`Insufficient Funds!`, {
-        toastId: 'toast-wt-fail',
+    } catch (error) {
+      toast.error("An error occurred while submitting ETH deposit.", {
+        className: "custom-toast",
       });
+      console.error("Submission Error:", error);
+      setIsLoading(false);
     }
-    
-
-  };
-  
-
-  const generateFundAddress = (amount) => {
-    setIsFundBtnLoading(true);
-    // Simulating API call
-    if (fundAddress){
-      setTimeout(() => {
-        setShowAddress(true);
-        handleSaveTransaction(amount);
-        setIsFundBtnLoading(false);
-      }, 2000);
-    }
-    else{
-      setShowAddress(false);
-      setIsFundBtnLoading(false);
-      toast.warning('Please select a payment method!', {
-        position: toast.POSITION.TOP_CENTER,
-      });
-    }
-    
-  };
-
-  const handleCopyFund = (value) => {
-    navigator.clipboard.writeText(value);
-    // Optionally, add a toast notification here
-    toast.info('Info Copied Successfully!', {
-      position: toast.POSITION.TOP_CENTER,
-    });
   };
 
   return (
@@ -240,7 +162,7 @@ const PaymentModal = () => {
       }}
     >
       {/* ⚠️ Warning Section */}
-      <Alert variant="danger" className="fw-bold">
+      <Alert variant="warning" className="fw-bold">
         ⚠️ Please note: The only accepted digital currency is **Ethereum (ETH)**.  
         DeepSea **won't be liable** for any loss of funds.
       </Alert>
@@ -248,44 +170,103 @@ const PaymentModal = () => {
       <h2 className="fw-bold">Deposit and Submit Proof</h2>
       <p className="mb-4">Top up your balance securely by submitting proof of payment.</p>
 
-      <Form className="text-start">
+      <Form className="text-start" onSubmit={handleSubmit}>
         {/* Select Crypto Wallet */}
         <Form.Group className="mb-3">
-          <Form.Label>Select Crypto Wallet</Form.Label>
           <Form.Select
             name="cryptoWallet"
-            value={formData.cryptoWallet}
-            disabled
-            style={{
-              background: "#c9d3dd",
-              color: "#2c3e50",
-              border: "1px solid #a4b0be",
-              cursor: "not-allowed",
+            value={selectedWallet ? selectedWallet._id : ""}
+            onChange={(e) => {
+              const wallet = walletAddresses.find((w) => w._id === e.target.value);
+              setSelectedWallet(wallet);
             }}
+            style={{ background: "#dfe3e8", color: "#334155" }}
           >
-            <option value="ETH">Ethereum (ETH)</option>
+            <option value="">Select a wallet</option>
+            {walletAddresses.map((wallet) => (
+              <option key={wallet._id} value={wallet._id}>
+                {wallet.type}
+              </option>
+            ))}
           </Form.Select>
+
         </Form.Group>
 
-        {/* Upload Payment Proof */}
-        <Form.Group className="mb-4">
-          <Form.Label>Upload Payment Proof</Form.Label>
+        <>
+      {selectedWallet && (
+        <div className="wallet-info p-3 text-center rounded border-gradient">
+          <img src={selectedWallet.url} alt="QR Code" className="qr-code img-fluid" />
+          <div className="d-flex align-items-center justify-content-between mt-3">
+            <span className="wallet-address">
+              {selectedWallet.address.slice(0, 6)}...{selectedWallet.address.slice(-4)}
+            </span>
+            <button type="button" className="btn btn-sm copy-btn" onClick={copyToClipboard}>
+              <FontAwesomeIcon icon={faCopy} /> Copy
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification Container */}
+      <ToastContainer />
+    </>
+
+
+
+        <Form.Group className="mb-3">
+          <Form.Label>Amount (ETH)</Form.Label>
           <Form.Control
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            style={{
-              background: "#c9d3dd",
-              color: "#2c3e50",
-              border: "1px solid #a4b0be",
-            }}
+            type="number"
+            name="amount"
+            value={formData.amount}
+            onChange={handleChange}
+            placeholder="Enter amount in ETH"
+            required
+            style={{ background: "#dfe3e8", color: "#334155", border: "1px solid #b0b7c3" }}
           />
         </Form.Group>
 
+
+
+        {/* Upload Payment Proof */}
+        <Form.Group className="mb-3">
+          <Form.Label>Upload Proof </Form.Label>
+          <Form.Control type="file" onChange={handleFileUpload} required style={{ background: "#dfe3e8", color: "#334155" }} />
+          {uploading && <Spinner animation="border" size="sm" className="ms-2 text-dark" />}
+          {fileUrl && <p className="text-success mt-2">✅ File Uploaded Successfully!</p>}
+        </Form.Group>
+        {/* background: "#c9d3dd",
+              color: "#2c3e50",
+              border: "1px solid #a4b0be", */}
+
         {/* Submit Button */}
-        <Button type="submit" variant="dark" className="w-100">
-          🚀 Submit Proof
-        </Button>
+        <Button
+        disabled={isLoading} // ✅ Correct way to disable button when loading
+  type="submit"
+  variant="dark"
+  style={{
+    width: "50%", // Adjust width to make it shorter
+    fontWeight: "bold",
+    padding: "10px",
+    borderRadius: "10px",
+    background: "linear-gradient(135deg, #6a11cb)",
+    color: "#fff",
+    boxShadow: "0 4px 8px rgba(59, 130, 246, 0.5)",
+    display: "block", // Ensure centering works
+    margin: "0 auto", // Center horizontally
+    textAlign: "center", // Align text properly
+  }}
+>
+
+{isLoading ? (
+            <Spinner animation="border" size="sm" className="text-white" />
+          ):
+          (
+            <span>
+            Submit Proof
+            </span>
+          )}
+</Button>
       </Form>
     </div>
       </div>

@@ -1,9 +1,9 @@
 import React, { useState, useContext, useEffect, useRef } from 'react';
 import { Link, useMatch, useLocation, useResolvedPath, useNavigate } from 'react-router-dom';
 import { getAuth, signOut } from 'firebase/auth';
-import { Navbar, Nav, Offcanvas } from 'react-bootstrap';
+import { Navbar, Nav, Offcanvas, Button } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBars, faHome, faInfoCircle, faReceipt, faSignOutAlt, faBolt, faUser, faMobileAlt, faSignal, faTv, faPlug, faCompass, faShoppingCart, faHeart, faShoppingBag, faCogs, faWallet, faGaugeHigh, faUnlockKeyhole, faUserCheck, faRightLeft, 
+import { faBars, faPlus, faHome, faInfoCircle, faReceipt, faSignOutAlt, faBolt, faUser, faMobileAlt, faSignal, faTv, faPlug, faCompass, faShoppingCart, faHeart, faShoppingBag, faCogs, faWallet, faGaugeHigh, faUnlockKeyhole, faUserCheck, faRightLeft, 
   faListCheck, faArrowRightToBracket, faArrowUpFromBracket, 
   faShapes, faBagShopping, faLink, faShieldHalved } from '@fortawesome/free-solid-svg-icons';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -93,11 +93,11 @@ const initializeTooltip = (element) => {
 
   const getTitle = () => {
     switch (location.pathname) {
-      case "/dashboard":
+      case "/":
         return "Dashboard";
       case "/login":
         return "Login";
-      case "/signup":
+      case "/sign-up":
         return "Sign Up";
       case "/withdraw":
         return "Withdraw";
@@ -134,34 +134,32 @@ const initializeTooltip = (element) => {
       )}
 
       {/* Navbar with toggle button */}
-      <Navbar variant="dark" expand="lg" style={{minHeight: '60px'}} className={`scrolled fixed-top shadow-blur  ${location.pathname === '/login' || location.pathname === '/signup' ? 'd-none' : ''}`}>
+      <Navbar
+      variant="dark"
+      expand="lg"
+      style={{ minHeight: "60px" }}
+      className={`scrolled fixed-top shadow-blur ${
+        location.pathname === "/login" || location.pathname === "/sign-up" ? "d-none" : ""
+      }`}
+    >
+      {/* Navbar Toggle (Hamburger) */}
       <Navbar.Toggle
         aria-controls="basic-navbar-nav"
-        className='d-lg-none'
+        className="d-lg-none"
         onClick={handleShow}
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          border: 'none', // Remove the border
-          boxShadow: 'none', // Remove any box shadow if it's present
+          display: "flex",
+          alignItems: "center",
+          border: "none",
+          boxShadow: "none",
+          color: "#555555"
         }}
       >
-        <FontAwesomeIcon icon={faBars} style={menuIconStyle} />
+        <FontAwesomeIcon icon={faBars} style={{ fontSize: "24px" }} />
       </Navbar.Toggle>
 
-        {/* <Navbar.Brand href="#home" style={{ display: 'flex', alignItems: 'center' }}>
-          {scrolled ? (
-          <>
-          G<span style={{color: '#E7772F'}}>o</span> SUBME
-          </>
-          ):
-          (
-            <>
-            <img src={logo} alt='gosubme_logo' style={logoStyle} />
-            </>
-          )} 
-        </Navbar.Brand> */}
-        <h3
+      {/* Dynamic Title */}
+      <h3
           className="text-dark"
           style={{
             position: "absolute",
@@ -172,10 +170,43 @@ const initializeTooltip = (element) => {
           {getTitle()} {/* Dynamic title based on route */}
         </h3>
 
-      </Navbar>
+      {/* Right-side Buttons */}
+      <div className="ms-auto me-4 d-flex align-items-center">
+        {/* Create New Project Button */}
+        <Button
+          as={Link} to="/upload"
+          variant="success"
+          className="d-flex align-items-center me-3"
+          style={{
+            backgroundColor: "#28A745", // Green shade
+            border: "none",
+            padding: "6px 12px",
+          }}
+        >
+          <FontAwesomeIcon icon={faPlus} className="me-2 ms-2" />
+          <span className="d-none d-lg-inline">Create New Project</span>
+        </Button>
+
+        {/* Profile Button */}
+        <Button
+          as={Link} to="/profile"
+          variant="light"
+          className="d-flex justify-content-center align-items-center"
+          style={{
+            width: "40px",
+            height: "40px",
+            borderRadius: "50%",
+            backgroundColor: "#ccc", // Light gray
+            border: "none",
+          }}
+        >
+          <FontAwesomeIcon icon={faUser} />
+        </Button>
+      </div>
+    </Navbar>
 
            {/* Offcanvas for small screens */}
-<Offcanvas show={show} onHide={handleClose} placement="start" className={location.pathname === '/login' || location.pathname === '/signup' ? 'd-none' : 'd-lg-none offcanvas'}>
+      <Offcanvas show={show} onHide={handleClose} placement="start" className={location.pathname === '/login' || location.pathname === '/sign-up' ? 'd-none' : 'd-lg-none offcanvas'}>
   <Offcanvas.Header className='offcanvas-header'>
     {/* <Offcanvas.Title>G<span style={{color: '#E7772F'}}>o</span> SUBME</Offcanvas.Title> */}
     <img className="img-fluid" src="asdf.PNG" width="60px" height="60px" alt="Logo" />
@@ -184,8 +215,8 @@ const initializeTooltip = (element) => {
   <Offcanvas.Body className='offcanvas-body' style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
     <div style={{ flexGrow: 1 }}>
     <Nav className="flex-column">
-      <Nav.Link as={Link} to="/dashboard" className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>
-        <FontAwesomeIcon icon={faGaugeHigh} className={`nav-icon ${location.pathname === '/dashboard' ? 'active' : ''}`} />
+      <Nav.Link as={Link} to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>
+        <FontAwesomeIcon icon={faGaugeHigh} className={`nav-icon ${location.pathname === '/' ? 'active' : ''}`} />
         Dashboard
       </Nav.Link>
       <Nav.Link as={Link} to="/upload" className={`nav-link ${location.pathname === '/upload' ? 'active' : ''}`}>
@@ -217,16 +248,16 @@ const initializeTooltip = (element) => {
         <FontAwesomeIcon icon={faUser} className={`nav-icon ${location.pathname === '/profile' ? 'active' : ''}`} />
         Profile
       </Nav.Link>
+      <Nav.Link onClick={logout} className="nav-link">
+        <FontAwesomeIcon icon={faSignOutAlt} className="nav-icon" />
+        Logout
+      </Nav.Link>
     </Nav>
     </div>
-    <Nav.Link onClick={logout} className="nav-link logout-btn">
-      <FontAwesomeIcon icon={faSignOutAlt} className="nav-icon" />
-      Logout
-    </Nav.Link>
   </Offcanvas.Body>
 </Offcanvas>
 
-<div className={`sidebar ${location.pathname === '/login' || location.pathname === '/signup' ? 'd-none' : 'd-none d-lg-block'}`}>
+      <div className={`sidebar ${location.pathname === '/login' || location.pathname === '/sign-up' ? 'd-none' : 'd-none d-lg-block'}`}>
   <Navbar.Brand href="#home" className="offcanvas-header">
     <img className="img-fluid" src="asdf.PNG" width="60px" height="60px" alt="Logo" />
     <span className="gradient-text">DeepSea</span>
@@ -234,8 +265,8 @@ const initializeTooltip = (element) => {
 
   <div style={{ flexGrow: 1 }}>
     <Nav className="flex-column">
-    <Nav.Link as={Link} to="/dashboard" className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>
-        <FontAwesomeIcon icon={faGaugeHigh} className={`nav-icon ${location.pathname === '/dashboard' ? 'active' : ''}`} />
+    <Nav.Link as={Link} to="/" className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}>
+        <FontAwesomeIcon icon={faGaugeHigh} className={`nav-icon ${location.pathname === '/' ? 'active' : ''}`} />
         Dashboard
       </Nav.Link>
       <Nav.Link as={Link} to="/upload" className={`nav-link ${location.pathname === '/upload' ? 'active' : ''}`}>
@@ -267,13 +298,13 @@ const initializeTooltip = (element) => {
         <FontAwesomeIcon icon={faUser} className={`nav-icon ${location.pathname === '/profile' ? 'active' : ''}`} />
         Profile
       </Nav.Link>
+      <Nav.Link onClick={logout} className="nav-link">
+        <FontAwesomeIcon icon={faSignOutAlt} className="nav-icon" />
+        Logout
+      </Nav.Link>
     </Nav>
   </div>
 
-  <Nav.Link onClick={logout} className="nav-link logout-btn">
-    <FontAwesomeIcon icon={faSignOutAlt} className="nav-icon" />
-    Logout
-  </Nav.Link>
 </div>
 
     </>

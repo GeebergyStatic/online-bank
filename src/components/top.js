@@ -42,12 +42,12 @@ const PaymentModal = () => {
           price_amount: price,
           price_currency: 'usd',
           pay_currency: selectedStarterValue,
-          ipn_callback_url: 'https://broker-app-4xfu.onrender.com/api/crypto-callback',
+          ipn_callback_url: 'https://nft-broker.onrender.com/api/crypto-callback',
           order_id: getUniqueId,
           order_description: 'Crypto Deposit'
         };
       
-        const response = await axios.post('https://broker-app-4xfu.onrender.com/api/payment', { data });
+        const response = await axios.post('https://nft-broker.onrender.com/api/payment', { data });
       
         const reference = uuidv4();
         if(price === 10000){
@@ -104,12 +104,12 @@ const PaymentModal = () => {
           price_amount: fundAmount,
           price_currency: 'usd',
           pay_currency: selectedFundValue,
-          ipn_callback_url: 'https://broker-app-4xfu.onrender.com/api/crypto-callback',
+          ipn_callback_url: 'https://nft-broker.onrender.com/api/crypto-callback',
           order_id: getUniqueId,
           order_description: 'Crypto Deposit'
         };
   
-        const response = await axios.post('https://broker-app-4xfu.onrender.com/api/payment', { data });
+        const response = await axios.post('https://nft-broker.onrender.com/api/payment', { data });
   
         // Assuming the payment address is returned in the response
   
@@ -264,7 +264,7 @@ const saveBtcTransactionData = async (transactionReference, email, amount, userI
       transactionType: 'Deposit',
       paymentID,
     };
-    await fetch(`https://broker-app-4xfu.onrender.com/api/createTransactions`,
+    await fetch(`https://nft-broker.onrender.com/api/createTransactions`,
    {
     method: 'POST',
     headers: {
@@ -308,7 +308,7 @@ const saveTempCryptoData = async (userID, payment_id, payment_status, pay_addres
       price_amount,
       order_description
     };
-    await fetch(`https://broker-app-4xfu.onrender.com/api/saveCryptoPayments`,
+    await fetch(`https://nft-broker.onrender.com/api/saveCryptoPayments`,
    {
     method: 'POST',
     headers: {
@@ -353,7 +353,7 @@ const debitUser = (ticketFee) =>{
   if (userBalance >= ticketFee && ticketFee !== null){
       const addParticipant = async () => {
           try {
-              await fetch('https://broker-app-4xfu.onrender.com/api/addParticipant', {
+              await fetch('https://nft-broker.onrender.com/api/addParticipant', {
                   method: 'POST',
                   headers: {
                       'Content-Type': 'application/json',

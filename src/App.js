@@ -50,12 +50,12 @@ function App() {
         {hasPaid ? (
           <Router>
             <ErrorBoundary>
-              <ToastProvider>
+              {/* <ToastProvider> */}
                 <Navigation />
                 <Routes>
-                  <Route exact path="/dashboard" element={<PrivateRoute exact path="/" element={<Home />} />} />
+                  <Route exact path="/" element={<PrivateRoute exact path="/" element={<Home />} />} />
                   <Route exact path="/login" element={<Login />} />
-                  <Route exact path="/signup" element={<SignUp />} />
+                  <Route exact path="/sign-up" element={<SignUp />} />
                   <Route exact path="/withdraw" element={<PrivateBalance exact path="/withdraw" element={<WalletBalance />} />} />
                   <Route exact path="/transactions" element={<PrivateTx exact path="/transactions" element={<TransactionList />} />} />
                   <Route exact path="/deposit" element={<PrivateActivate exact path="/deposit" element={<PaymentModal />} />} />
@@ -67,7 +67,7 @@ function App() {
                   <Route exact path="/profile" element={<PrivateDashboard exact path="/profile" element={<Dashboard />} />} />
                   <Route exact path="/admin" element={<PrivateAdmin exact path="/admin" element={<UserManagement />} />} />
                 </Routes>
-              </ToastProvider>
+              {/* </ToastProvider> */}
             </ErrorBoundary>
             {isLoading && <Loading />}
           </Router>
