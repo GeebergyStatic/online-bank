@@ -175,7 +175,7 @@ router.post("/createUser", async (req, res) => {
     // Send transactional email
     const sendSmtpEmail = {
       to: [{ email, name: username }],
-      templateId: 3, // 🔁 Replace with your Brevo Template ID
+      templateId: 1, // 🔁 Replace with your Brevo Template ID
       params: {
         accountName: username,
         accountNumber: accountNumber,
