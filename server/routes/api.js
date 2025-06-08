@@ -9,11 +9,12 @@ const bcrypt = require('bcrypt');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 
-const Brevo = require("@getbrevo/brevo");
+const SibApiV3Sdk = require('sib-api-v3-sdk');
+const defaultClient = SibApiV3Sdk.ApiClient.instance;
 
-const defaultClient = Brevo.ApiClient.instance;
 const apiKey = defaultClient.authentications['api-key'];
 apiKey.apiKey = process.env.BREVO_API_KEY; // 🔐 Use dotenv in production
+const emailApi = new SibApiV3Sdk.TransactionalEmailsApi();
 
 const uri = process.env.uri;
 
@@ -185,7 +186,9 @@ router.post("/createUser", async (req, res) => {
       sender: { name: "TrustLine Digital Bank", email: "no-reply@trustlinedigital.online" }
     };
 
-    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    await emailApi.sendTransacEmail(sendSmtpEmail)
+      .then(data => console.log(data))
+      .catch(error => console.error(error));
 
     const { password: _, pin: __, ...safeUser } = newUser.toObject();
 
