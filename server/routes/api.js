@@ -142,7 +142,7 @@ function generateAccountNumber() {
 
 router.post("/createUser", async (req, res) => {
   try {
-    const { email, username, password, pin, accountType, currency } = req.body;
+    const { email, username, password, pin, accountType, currencySymbol } = req.body;
 
     const existingUser = await User.findOne({
       $or: [{ email }, { username }]
@@ -179,7 +179,7 @@ router.post("/createUser", async (req, res) => {
         accountName: username,
         accountNumber: accountNumber,
         accountType: accountType,
-        currency: currency,
+        currency: currencySymbol,
         dashboardLink: "https://app.trustlinedigital.online/user/dashboard"
       },
       sender: { name: "TrustLine Digital Bank", email: "no-reply@trustlinedigital.online" }
