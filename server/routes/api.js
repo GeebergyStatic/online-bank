@@ -9,6 +9,12 @@ const bcrypt = require('bcrypt');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 
+const Brevo = require("@getbrevo/brevo");
+
+const defaultClient = Brevo.ApiClient.instance;
+const apiKey = defaultClient.authentications['api-key'];
+apiKey.apiKey = process.env.BREVO_API_KEY; // 🔐 Use dotenv in production
+
 const uri = process.env.uri;
 
 async function connectToMongoDB() {
@@ -17,7 +23,7 @@ async function connectToMongoDB() {
     console.log('Connected to MongoDB');
   } catch (error) {
 
-    
+
     console.error('Error connecting to MongoDB', error);
   }
 }
@@ -26,16 +32,16 @@ connectToMongoDB();
 
 const NFTSchema = new mongoose.Schema(
   {
-      userId: { type: String, required: true },
-      creatorName: { type: String, required: true },
-      collectionName: { type: String, required: true },
-      fileUrl: { type: String, required: true },
-      category: { type: String, required: true, enum: ["art", "music", "domain names", "sports", "collectible", "photography"] },
-      bidPrice: { type: Number, required: true },
-      comment: { type: String },
-      agentID: { type: String },
-      fromAgent: { type: Boolean, default: false },
-      status: { type: String, enum: ["pending", "failed", "successful", "approved", "on sale", "sold", "denied"], default: "pending" },
+    userId: { type: String, required: true },
+    creatorName: { type: String, required: true },
+    collectionName: { type: String, required: true },
+    fileUrl: { type: String, required: true },
+    category: { type: String, required: true, enum: ["art", "music", "domain names", "sports", "collectible", "photography"] },
+    bidPrice: { type: Number, required: true },
+    comment: { type: String },
+    agentID: { type: String },
+    fromAgent: { type: Boolean, default: false },
+    status: { type: String, enum: ["pending", "failed", "successful", "approved", "on sale", "sold", "denied"], default: "pending" },
   },
   { timestamps: true }
 );
@@ -130,13 +136,14 @@ const Event = mongoose.model('Event', eventSchema);
 
 
 // create user
-const saltRounds = 10;
+function generateAccountNumber() {
+  return '31' + Math.floor(100000000 + Math.random() * 900000000);
+}
 
 router.post("/createUser", async (req, res) => {
   try {
-    const { email, username, password, pin } = req.body;
+    const { email, username, password, pin, accountType, currency } = req.body;
 
-    // Check if a user with the same email or username already exists
     const existingUser = await User.findOne({
       $or: [{ email }, { username }]
     });
@@ -148,41 +155,54 @@ router.post("/createUser", async (req, res) => {
       });
     }
 
-    // Hash password and pin
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-    const hashedPin = pin ? await bcrypt.hash(pin, saltRounds) : undefined;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPin = pin ? await bcrypt.hash(pin, 10) : undefined;
 
-    // Generate a new unique userId
     const newUserId = uuidv4();
+    const accountNumber = generateAccountNumber();
 
-    // Create and save new user
     const newUser = new User({
       ...req.body,
       userId: newUserId,
       password: hashedPassword,
-      pin: hashedPin, // assuming your schema supports `pin`
+      pin: hashedPin,
+      accountNumber
     });
 
     await newUser.save();
 
-    // Don't return hashed credentials to the frontend
-    const { password: _, pin: __, ...safeUserData } = newUser.toObject();
+    // Send transactional email
+    const sendSmtpEmail = {
+      to: [{ email, name: username }],
+      templateId: 3, // 🔁 Replace with your Brevo Template ID
+      params: {
+        accountName: username,
+        accountNumber: accountNumber,
+        accountType: accountType,
+        currency: currency,
+        dashboardLink: "https://app.trustlinedigital.online/user/dashboard"
+      },
+      sender: { name: "TrustLine Digital Bank", email: "no-reply@trustlinedigital.online" }
+    };
+
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+
+    const { password: _, pin: __, ...safeUser } = newUser.toObject();
 
     return res.send({
       status: "success",
-      userDetails: safeUserData,
+      userDetails: safeUser
     });
 
-  } catch (error) {
-    console.error("Create user error:", error);
-    return res.status(500).send({
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({
       status: "error",
       message: "Server error",
-      error: error.message
+      error: err.message
     });
   }
 });
-
 
 router.post("/loginUser", async (req, res) => {
   const { emailOrUsername, password } = req.body;
@@ -216,21 +236,21 @@ router.post("/loginUser", async (req, res) => {
 router.post("/addUser", async (request, response) => {
   const userDetails = new User(request.body);
   const userId = userDetails.userId;
- 
+
   try {
-    const doesDataExist = await User.findOne({ userId: userId});
-    if(!doesDataExist){
+    const doesDataExist = await User.findOne({ userId: userId });
+    if (!doesDataExist) {
       await userDetails.save();
-      response.send({"userDetails": userDetails, "status": "success"});
+      response.send({ "userDetails": userDetails, "status": "success" });
     }
-    else{
+    else {
       const reply = {
         "status": "success",
         "message": "User data already exists",
       }
       response.send(reply);
     }
-    
+
   } catch (error) {
     response.status(500).send(error);
   }
@@ -322,7 +342,7 @@ router.post('/payment', async (req, res) => {
       }
     });
 
-  res.json(response.data);
+    res.json(response.data);
   } catch (error) {
     console.error('Error proxying request:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -397,18 +417,18 @@ router.post('/updateAccountLimit', async (req, res) => {
         try {
           // Fetch the user's document
           const currentUserDoc = await User.findOne({ userId: userId });
-  
+
           if (!currentUserDoc) {
             throw new Error('User data not found.');
           }
-  
+
           const currentUserAccountLimit = currentUserDoc.accountLimit;
           const isCurrentAccountActive = currentUserDoc.isUserActive;
           const currentUserReferralsCount = currentUserDoc.referralsCount;
           const currentUserPaid = currentUserDoc.hasPaid;
-  
+
           const amount = currentUserDoc.reserveAccountLimit;
-  
+
           // Check if the user has three referrals and isCurrentAccountActive
           if (currentUserReferralsCount >= 3 && isCurrentAccountActive && currentUserPaid) {
             await User.updateOne(
@@ -416,7 +436,7 @@ router.post('/updateAccountLimit', async (req, res) => {
               { $set: { accountLimit: parseFloat(currentUserAccountLimit) + parseFloat(amount), referralsCount: 0, hasPaid: false } }
             );
           }
-  
+
         } catch (error) {
           console.error(error);
           res.status(500).json({ error: 'Internal Server Error' });
@@ -471,34 +491,34 @@ router.post('/updateAccountLimit', async (req, res) => {
 router.post("/updateInfo", async (request, response) => {
   const userDetails = new User(request.body);
   const userId = userDetails.userId;
- 
+
   try {
-    const doesDataExist = await User.findOne({ userId: userId});
+    const doesDataExist = await User.findOne({ userId: userId });
     try {
       // Example 1: Updating user's balance
       // await User.updateOne(
       //   { userId: userId },
       //   { $set: { balance: newBalance } }
       // );
-      
+
       // Example 2: Incrementing referredUsers field
-      if(doesDataExist){
+      if (doesDataExist) {
         await User.updateOne(
           { userId: userId },
           { $inc: { referredUsers: 1, weeklyReferrals: 1 } }
-      );
-      
-    
-        response.send({"status": "successful", "referrerData" : doesDataExist})
+        );
+
+
+        response.send({ "status": "successful", "referrerData": doesDataExist })
       }
-      else{
+      else {
 
       }
-      
+
     } catch (error) {
       response.send(error);
     }
-    
+
   } catch (error) {
     response.status(500).send(error);
   }
@@ -514,36 +534,40 @@ router.post("/updateBalance", async (request, response) => {
   const lastLogin = userDetails.lastLogin;
   const firstLogin = userDetails.firstLogin;
   const weeklyEarnings = userDetails.weeklyEarnings;
- 
+
   try {
-    const doesDataExist = await User.findOne({ userId: userId});
+    const doesDataExist = await User.findOne({ userId: userId });
     try {
       // Example 1: Updating user's balance
-      
-  
+
+
       // Example 2: Incrementing referredUsers field
-      if(doesDataExist){
+      if (doesDataExist) {
         await User.updateOne(
           { userId: userId },
-          { $set: { balance: newBalance,
-          dailyDropBalance,
-          accountLimit,
-          lastLogin,
-          firstLogin },
-          $inc: { weeklyEarnings: weeklyEarnings}  },
-           
+          {
+            $set: {
+              balance: newBalance,
+              dailyDropBalance,
+              accountLimit,
+              lastLogin,
+              firstLogin
+            },
+            $inc: { weeklyEarnings: weeklyEarnings }
+          },
+
         );
-    
-        response.send({"status": "successful", "referrerData" : doesDataExist})
+
+        response.send({ "status": "successful", "referrerData": doesDataExist })
       }
-      else{
-        response.send({"status": "failed",})
+      else {
+        response.send({ "status": "failed", })
       }
-      
+
     } catch (error) {
       response.send(error);
     }
-    
+
   } catch (error) {
     response.status(500).send(error);
   }
@@ -566,21 +590,21 @@ router.post("/creditReferrer", async (request, response) => {
 
     // Example 2: Incrementing referredUsers field
     if (referredByUser) {
-        let commissionRate = 0.17; // Default commission rate for tier 0
-        if (referredByUserTotalReferrals !== null) {
+      let commissionRate = 0.17; // Default commission rate for tier 0
+      if (referredByUserTotalReferrals !== null) {
         if (referredByUserTotalReferrals >= 9) commissionRate = 0.3;
         else if (referredByUserTotalReferrals >= 6) commissionRate = 0.25;
         else if (referredByUserTotalReferrals >= 3) commissionRate = 0.20;
       }
       const commission = commissionRate * (referredByUserRole === 'crypto' ? 2 : 3000);
-  
+
       const revenueAdd = referredByUserRole === 'crypto' ? 2 : 1333;
 
-       // Update referrer's commission
-       await User.updateOne(
+      // Update referrer's commission
+      await User.updateOne(
         { userId: userId },
         {
-          $inc: { referralsCount: 1, totalReferrals: 1, referralsBalance: commission, referredUsers: -1, weeklyEarnings: commission, reserveAccountLimit: revenueAdd}
+          $inc: { referralsCount: 1, totalReferrals: 1, referralsBalance: commission, referredUsers: -1, weeklyEarnings: commission, reserveAccountLimit: revenueAdd }
         }
       );
 
@@ -601,11 +625,11 @@ router.get("/userExists/:userIdentification", async (request, response) => {
     const userId = request.params.userIdentification;
     const userExists = await User.findOne({ userId: userId });
 
-    if(userExists){
-      response.send({status: true, data: userExists})
+    if (userExists) {
+      response.send({ status: true, data: userExists })
     }
-    else{
-      response.send({status: false})
+    else {
+      response.send({ status: false })
     }
   } catch (error) {
     response.status(500).send(error);
@@ -615,7 +639,7 @@ router.get("/userExists/:userIdentification", async (request, response) => {
 
 // Check referral code
 // check referral code
-router.get("/checkUserReferral/:userReferral", async (request, response) => { 
+router.get("/checkUserReferral/:userReferral", async (request, response) => {
   try {
     const userReferralCode = request.params.userReferral;
     const referrerExists = await User.findOne({ referralCode: userReferralCode });
@@ -643,7 +667,7 @@ router.get("/checkUserReferral/:userReferral", async (request, response) => {
 router.get("/checkAgentCode/:agentCode", async (request, response) => {
   try {
     const { agentCode } = request.params;
-    
+
     // Check if the agent code exists
     const agentExists = await User.findOne({ agentID: agentCode });
 
@@ -670,10 +694,10 @@ router.get("/checkAgentCode/:agentCode", async (request, response) => {
 
 // end of check agent code
 
-router.get("/userDetail/:userId", async (request, response) => { 
+router.get("/userDetail/:userId", async (request, response) => {
   try {
     const userId = request.params.userId;
-    const user = await User.findOne({ userId: userId});
+    const user = await User.findOne({ userId: userId });
 
     response.send(user);
   } catch (error) {
@@ -706,15 +730,15 @@ router.post('/createTransactions', async (request, response) => {
 
 router.get('/fetchWallets', async (req, res) => {
   // const { agentCode } = req.query; // Get agentCode from the query parameter
-  
+
   // if (!agentCode) {
   //   return res.status(400).json({ error: 'Agent code is required' });
   // }
 
   try {
     // Find the user by agentCode to check if they are the owner
-      const defaultWallets = await WalletAddress.find({ isDefault: true });
-      return res.status(200).json(defaultWallets); // Return the default wallets
+    const defaultWallets = await WalletAddress.find({ isDefault: true });
+    return res.status(200).json(defaultWallets); // Return the default wallets
 
   } catch (error) {
     console.error('Error fetching wallets:', error);
@@ -781,18 +805,18 @@ router.put('/updatePaymentStatusAndDelete/:transactionId', async (request, respo
 
     // Update payment status in the database
     await Transaction.findOneAndUpdate(
-      { paymentID: transactionId},
+      { paymentID: transactionId },
       { status: newStatus },
       { new: true }
     );
 
-    if(newStatus === 'success'){
+    if (newStatus === 'success') {
       const currentUser = await User.findOne({ userId });
 
-  
+
       const currentUserIsActive = currentUser.isUserActive;
       // Update current user's account balance
-      
+
       if (!currentUserIsActive) {
         // Update user's balance after account activation
         await User.updateOne(
@@ -812,10 +836,10 @@ router.put('/updatePaymentStatusAndDelete/:transactionId', async (request, respo
           }
         );
       }
-  
+
     }
     // Delete the document
-    await PaymentCallback.deleteOne({ paymentID : transactionId });
+    await PaymentCallback.deleteOne({ paymentID: transactionId });
 
     response.sendStatus(200); // Respond with success status
   } catch (error) {
@@ -831,7 +855,7 @@ router.put('/updatePaymentStatusAndDelete/:transactionId', async (request, respo
 // get pending deposits and transactions
 router.get('/getBtcFundings', async (req, res) => {
   try {
-    const btcDeposits = await PaymentCallback.find({description: 'Deposit'});
+    const btcDeposits = await PaymentCallback.find({ description: 'Deposit' });
     res.json(btcDeposits);
   } catch (error) {
     res.status(500).json({ error: 'Internal Server Error' });
@@ -847,14 +871,14 @@ router.put('/updateUserBalance/:transactionId', async (request, response) => {
 
     // Update payment status in the database
     await Transaction.findOneAndUpdate(
-      { paymentID: transactionId},
+      { paymentID: transactionId },
       { status: newStatus },
       { new: true }
     );
-      
+
 
     // Delete the document
-    await PaymentCallback.deleteOne({ paymentID : transactionId });
+    await PaymentCallback.deleteOne({ paymentID: transactionId });
 
     response.sendStatus(200); // Respond with success status
   } catch (error) {
@@ -905,15 +929,15 @@ router.put('/updateUserWithdrawal/:transactionId', async (request, response) => 
 
     // Update payment status in the database
     await Transaction.findOneAndUpdate(
-      { paymentID: transactionId},
+      { paymentID: transactionId },
       { status: newStatus },
       { new: true }
     );
 
-      
+
 
     // Delete the document
-    await PaymentCallback.deleteOne({ paymentID : transactionId });
+    await PaymentCallback.deleteOne({ paymentID: transactionId });
 
     response.sendStatus(200); // Respond with success status
   } catch (error) {
@@ -924,7 +948,7 @@ router.put('/updateUserWithdrawal/:transactionId', async (request, response) => 
 
 
 // ...
-router.delete("/userDetail", async (request, response) => { 
+router.delete("/userDetail", async (request, response) => {
   try {
     const users = await User.findByIdAndDelete('id');
     response.send(users);
@@ -992,7 +1016,7 @@ router.get('/script', async (req, res) => {
   try {
 
     let script;
-    
+
     script = await Script.findOne({ isDefault: true }); // Assuming there's a default script
 
     if (!script) {
@@ -1064,12 +1088,12 @@ router.put('/users/:id', async (req, res) => {
 
 // Endpoint to fetch all usernames
 router.get('/usernames', async (req, res) => {
-    try {
-        const usernames = await User.find({}, { username: 1, _id: 0 }); // Include 'username', exclude '_id'
-        res.json(usernames);
-    } catch (error) {
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
+  try {
+    const usernames = await User.find({}, { username: 1, _id: 0 }); // Include 'username', exclude '_id'
+    res.json(usernames);
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 // **Update User Role to Agent**
@@ -1087,7 +1111,7 @@ router.put("/update-user", async (req, res) => {
     // Update the user and increment balance by 1000
     const updatedUser = await User.findOneAndUpdate(
       { userId }, // Search using userId as a field, NOT _id
-      { 
+      {
         $set: { role, agentID }, // Update role and agentID
         $inc: { balance: 1000 }  // Increment balance by 1000
       },
@@ -1107,45 +1131,45 @@ router.put("/update-user", async (req, res) => {
 
 router.post("/submit-nfts", async (req, res) => {
   try {
-      const { userId, creatorName, collectionName, fileUrl, category, bidPrice, comment, agentID, fromAgent } = req.body;
+    const { userId, creatorName, collectionName, fileUrl, category, bidPrice, comment, agentID, fromAgent } = req.body;
 
-      if (!userId || !creatorName || !collectionName || !fileUrl || !category || !bidPrice || fromAgent === undefined) {
-        return res.status(400).json({ message: "All required fields must be filled." });
-      }
+    if (!userId || !creatorName || !collectionName || !fileUrl || !category || !bidPrice || fromAgent === undefined) {
+      return res.status(400).json({ message: "All required fields must be filled." });
+    }
 
-      // Fetch user balance
-      const user = await User.findOne({ userId });
-      if (!user) {
-        return res.status(404).json({ message: "User not found." });
-      }
+    // Fetch user balance
+    const user = await User.findOne({ userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
 
-      // Check if balance is enough
-      if (user.balance < 0.10) {
-        return res.status(400).json({ message: "Insufficient balance." });
-      }
+    // Check if balance is enough
+    if (user.balance < 0.10) {
+      return res.status(400).json({ message: "Insufficient balance." });
+    }
 
-      // Deduct balance
-      user.balance -= 0.10;
-      await user.save(); // Save updated balance
+    // Deduct balance
+    user.balance -= 0.10;
+    await user.save(); // Save updated balance
 
-      const newNFT = new NFT({
-          userId,
-          creatorName,
-          collectionName,
-          fileUrl,
-          category,
-          bidPrice,
-          comment,
-          agentID,
-          fromAgent,
-          status: "pending",
-      });
+    const newNFT = new NFT({
+      userId,
+      creatorName,
+      collectionName,
+      fileUrl,
+      category,
+      bidPrice,
+      comment,
+      agentID,
+      fromAgent,
+      status: "pending",
+    });
 
-      await newNFT.save();
-      res.status(201).json({ message: "NFT submitted successfully!", nft: newNFT });
+    await newNFT.save();
+    res.status(201).json({ message: "NFT submitted successfully!", nft: newNFT });
   } catch (error) {
-      console.error("Error submitting NFT:", error);
-      res.status(500).json({ message: "Server error" });
+    console.error("Error submitting NFT:", error);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -1281,10 +1305,10 @@ router.put("/edit-nft/:creatorName/:collectionName/:agentID", async (req, res) =
 // GET: Fetch all NFTs
 router.get("/fetch-nft-all", async (req, res) => {
   try {
-      const nfts = await NFT.find();
-      res.status(200).json(nfts);
+    const nfts = await NFT.find();
+    res.status(200).json(nfts);
   } catch (error) {
-      res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -1355,17 +1379,17 @@ router.get("/fetch-agent-nfts/:agentCode/:userId", async (req, res) => {
 // PATCH: Update NFT status
 router.patch("/:id/status", async (req, res) => {
   try {
-      const { status } = req.body;
-      if (!["pending", "failed", "successful"].includes(status)) {
-          return res.status(400).json({ message: "Invalid status" });
-      }
+    const { status } = req.body;
+    if (!["pending", "failed", "successful"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
 
-      const updatedNFT = await NFT.findByIdAndUpdate(req.params.id, { status }, { new: true });
-      if (!updatedNFT) return res.status(404).json({ message: "NFT not found" });
+    const updatedNFT = await NFT.findByIdAndUpdate(req.params.id, { status }, { new: true });
+    if (!updatedNFT) return res.status(404).json({ message: "NFT not found" });
 
-      res.status(200).json({ message: "NFT status updated", nft: updatedNFT });
+    res.status(200).json({ message: "NFT status updated", nft: updatedNFT });
   } catch (error) {
-      res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -1639,7 +1663,7 @@ router.put("/update-transaction/:transactionReference", async (req, res) => {
     // ✅ Increase deposit if transaction is a successful deposit
     if (status === "success" && transactionType === "Deposit") {
       const user = await User.findOne({ userId: updatedTransaction.userID });
-      
+
       if (!user) {
         return res.status(404).json({ message: "User not found." });
       }
@@ -1761,7 +1785,7 @@ router.post("/agent-nft-purchase", async (req, res) => {
       bidPrice: parseFloat(bidPrice), // if needed
       agentID
     });
-    
+
     if (!nft) {
       return res.status(404).json({ error: "NFT not found" });
     }
@@ -1809,7 +1833,7 @@ router.get('/fetch-minted-nfts/:userId', async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     res.json(user.mintedNfts);
   } catch (error) {
     console.error('Error retrieving NFTs:', error);
