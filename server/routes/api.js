@@ -260,6 +260,20 @@ router.post("/addUser", async (request, response) => {
 });
 
 
+// fetch user details
+router.get("/userDetail/:userId", async (request, response) => {
+  try {
+    const userId = request.params.userId;
+    const user = await User.findOne({ userId: userId });
+
+    response.send(user);
+  } catch (error) {
+    response.status(500).send(error);
+  }
+});
+
+
+
 // Function to save NFT transaction
 const saveNftTransactionData = async (
   userId,
@@ -697,16 +711,6 @@ router.get("/checkAgentCode/:agentCode", async (request, response) => {
 
 // end of check agent code
 
-router.get("/userDetail/:userId", async (request, response) => {
-  try {
-    const userId = request.params.userId;
-    const user = await User.findOne({ userId: userId });
-
-    response.send(user);
-  } catch (error) {
-    response.status(500).send(error);
-  }
-});
 
 // transactions backend
 // create TX
