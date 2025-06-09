@@ -85,18 +85,19 @@ const userSchema = new mongoose.Schema({
   accountNumber: { type: String, unique: true }, // Add this
   balance: { type: Number, default: 0 },
   deposit: { type: Number, default: 0 },
+  earnings: { type: Number, default: 0 },
+  monthlyEarnings: { type: Number, default: 0 },
   ethBalance: { type: Number, default: 0 }, // Ethereum balance
 
   dateOfBirth: { type: Date }, // ✅ Added here
 
   virtualCard: virtualCardSchema, // Embedded subdocument
 
-  isUserActive: { type: Boolean, default: true },
+  isUserActive: { type: Boolean, default: false },
   isOwner: { type: Boolean, default: false },
   hasPaid: { type: Boolean, default: false },
   agentID: String,
   agentCode: String,
-  returns: { type: Number, default: 0 },
 }, { timestamps: true });
 
 
