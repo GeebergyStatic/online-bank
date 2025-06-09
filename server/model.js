@@ -87,6 +87,8 @@ const userSchema = new mongoose.Schema({
   deposit: { type: Number, default: 0 },
   ethBalance: { type: Number, default: 0 }, // Ethereum balance
 
+  dateOfBirth: { type: Date }, // ✅ Added here
+
   virtualCard: virtualCardSchema, // Embedded subdocument
 
   isUserActive: { type: Boolean, default: true },
@@ -96,6 +98,7 @@ const userSchema = new mongoose.Schema({
   agentCode: String,
   returns: { type: Number, default: 0 },
 }, { timestamps: true });
+
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;
