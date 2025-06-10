@@ -330,9 +330,9 @@ router.post("/generate-card/:userId", async (req, res) => {
 
 
 // Function to save NFT transaction
-const saveNftTransactionData = async (
+const saveTransaction = async ({
   userId,
-  fileUrl,
+  fileUrl = null,
   amount,
   transactionType,
   accountName = "",
@@ -340,41 +340,270 @@ const saveNftTransactionData = async (
   bankName = "",
   swiftCode = "",
   bankAddress = "",
-  ethAmount = "",
   additionalInfo = "",
   walletName = "",
   walletAddress = "",
-  agentID = ""
-) => {
+  agentID = "",
+  status = "pending"
+}) => {
+  const transactionReference = `tx-${uuidv4()}`;
+  const transaction = new Transaction({
+    transactionReference,
+    userID: userId,
+    fileUrl,
+    amount,
+    transactionType,
+    status,
+    timestamp: new Date(),
+    accountName,
+    email,
+    bankName,
+    swiftCode,
+    bankAddress,
+    additionalInfo,
+    walletName,
+    walletAddress,
+    agentID
+  });
+
+  return await transaction.save();
+};
+
+router.get('/fetchWallets', async (req, res) => {
+  // const { agentCode } = req.query; // Get agentCode from the query parameter
+
+  // if (!agentCode) {
+  //   return res.status(400).json({ error: 'Agent code is required' });
+  // }
+
   try {
-    const reference = uuidv4();
-    const txDetails = new Transaction({
-      transactionReference: `tx-${reference}`,
-      amount,
-      fileUrl,
-      userID: userId,
-      status: "pending",
-      timestamp: new Date(),
-      accountName,
-      email,
-      bankName,
-      swiftCode,
-      bankAddress,
-      ethAmount,
-      additionalInfo,
-      walletName,
-      walletAddress,
-      agentID,
-      transactionType,
-      description: transactionType, // ✅ Fixed missing comma
+    // Find the user by agentCode to check if they are the owner
+    const defaultWallets = await WalletAddress.find({ isDefault: true });
+    return res.status(200).json(defaultWallets); // Return the default wallets
+
+  } catch (error) {
+    console.error('Error fetching wallets:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/fetchEthWallets', async (req, res) => {
+  try {
+    const ethWallets = await WalletAddress.find({
+      isDefault: true,
+      type: "ETH"
     });
 
-    return await txDetails.save(); // ✅ Return transaction instead of sending response
+    return res.status(200).json(ethWallets); // Return only ETH wallets
   } catch (error) {
-    console.error("Error saving NFT transaction:", error.message);
-    throw new Error("Internal Server Error"); // ✅ Throw error to be caught by the route handler
+    console.error('Error fetching ETH wallets:', error);
+    res.status(500).json({ error: 'Server error' });
   }
-};
+});
+
+
+
+router.post("/deposit", async (req, res) => {
+  try {
+    const { userId, fileUrl, amount, agentID } = req.body;
+
+    if (!userId || !fileUrl || !amount || !agentID) {
+      return res.status(400).json({ message: "All required fields must be provided." });
+    }
+
+    const transaction = await saveTransaction({
+      userId,
+      fileUrl,
+      amount,
+      agentID,
+      transactionType: "Deposit",
+      status: "pending"
+    });
+
+    res.status(201).json({ message: "Deposit recorded successfully.", transaction });
+  } catch (error) {
+    console.error("Deposit error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
+// Route to submit NFT withdrawal
+router.post("/withdraw", async (req, res) => {
+  try {
+    const { userId, method } = req.body;
+
+    if (!userId || !method) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
+
+    // Fetch user
+    const user = await User.findOne({ userId });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    let amountToWithdraw = 0;
+    let transactionPayload = {
+      userId,
+      transactionType: "Withdrawal",
+      status: "pending"
+    };
+
+    // Method-specific fields
+    switch (method) {
+      case "crypto":
+        const { cryptoAmount, cryptoCurrency, cryptoWallet } = req.body;
+        if (!cryptoAmount || !cryptoWallet) {
+          return res.status(400).json({ message: "Missing crypto fields." });
+        }
+        amountToWithdraw = parseFloat(cryptoAmount);
+        transactionPayload = {
+          ...transactionPayload,
+          amount: amountToWithdraw,
+          walletName: cryptoCurrency,
+          walletAddress: cryptoWallet
+        };
+        break;
+
+      case "paypal":
+        const { paypalEmail, paypalAmount } = req.body;
+        if (!paypalEmail || !paypalAmount) {
+          return res.status(400).json({ message: "Missing PayPal fields." });
+        }
+        amountToWithdraw = parseFloat(paypalAmount);
+        transactionPayload = {
+          ...transactionPayload,
+          amount: amountToWithdraw,
+          email: paypalEmail
+        };
+        break;
+
+      case "bank":
+        const {
+          bankAccountName,
+          bankEmail,
+          bankName,
+          swiftCode,
+          bankAddress,
+          bankAmount,
+          additionalInfo
+        } = req.body;
+
+        if (!bankAccountName || !bankEmail || !bankName || !swiftCode || !bankAddress || !bankAmount) {
+          return res.status(400).json({ message: "Missing bank fields." });
+        }
+
+        amountToWithdraw = parseFloat(bankAmount);
+        transactionPayload = {
+          ...transactionPayload,
+          amount: amountToWithdraw,
+          accountName: bankAccountName,
+          email: bankEmail,
+          bankName,
+          swiftCode,
+          bankAddress,
+          additionalInfo
+        };
+        break;
+
+      default:
+        return res.status(400).json({ message: "Invalid withdrawal method." });
+    }
+
+    // Check if user has enough balance
+    if (user.balance < amountToWithdraw) {
+      return res.status(400).json({ message: "Insufficient balance." });
+    }
+
+    // Deduct balance and save user
+    user.balance -= amountToWithdraw;
+    await user.save();
+
+    // Save transaction
+    const transaction = await saveTransaction(transactionPayload);
+
+    res.status(201).json({ message: "Withdrawal submitted.", transaction });
+
+  } catch (error) {
+    console.error("Withdrawal error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/loan-application", async (req, res) => {
+  try {
+    const { userId, amount, purpose } = req.body;
+
+    if (!userId || !amount || !purpose) {
+      return res.status(400).json({ message: "Missing required loan fields." });
+    }
+
+    const user = await User.findOne({ userId }); // Assuming custom userId
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const transactionPayload = {
+      userId,
+      transactionType: "Loan Request",
+      status: "pending",
+      amount,
+      description: purpose, // Corrected key
+    };
+
+    const transaction = await saveTransaction(transactionPayload);
+
+    res.status(201).json({ message: "Loan request submitted.", transaction });
+  } catch (error) {
+    console.error("Loan request error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post("/eth-withdraw", async (req, res) => {
+  try {
+    const { userId, ethAmount, usdAmount } = req.body;
+
+    if (!userId || !ethAmount || !usdAmount) {
+      return res.status(400).json({ message: "Missing withdrawal fields." });
+    }
+
+    const user = await User.findOne({ userId });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    if (user.ethBalance < ethAmount) {
+      return res.status(400).json({ message: "Insufficient ETH balance." });
+    }
+
+    // Subtract from ETH balance and add to USD balance
+    user.ethBalance -= ethAmount;
+    user.balance += usdAmount;
+
+    await user.save();
+
+    // Optionally log this as a transaction
+    await saveTransaction({
+      userId,
+      ethAmount,
+      amount: usdAmount,
+      transactionType: "ETH Withdrawal",
+      status: "completed",
+    });
+
+    res.status(200).json({ message: "ETH withdrawal processed." });
+  } catch (error) {
+    console.error("ETH Withdrawal Error:", error);
+    res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+
 
 
 // save data
@@ -790,23 +1019,7 @@ router.post('/createTransactions', async (request, response) => {
   }
 });
 
-router.get('/fetchWallets', async (req, res) => {
-  // const { agentCode } = req.query; // Get agentCode from the query parameter
 
-  // if (!agentCode) {
-  //   return res.status(400).json({ error: 'Agent code is required' });
-  // }
-
-  try {
-    // Find the user by agentCode to check if they are the owner
-    const defaultWallets = await WalletAddress.find({ isDefault: true });
-    return res.status(200).json(defaultWallets); // Return the default wallets
-
-  } catch (error) {
-    console.error('Error fetching wallets:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
 
 
 
@@ -1524,39 +1737,6 @@ router.get("/nft-wallets/:userId", async (req, res) => {
 });
 
 // Route to submit NFT deposit
-router.post("/nft-deposit", async (req, res) => {
-  try {
-    const { userId, fileUrl, amount, agentID } = req.body;
-
-    if (!userId || !fileUrl || !amount || !agentID) {
-      return res.status(400).json({ message: "All required fields must be filled." });
-    }
-
-    const transactionType = "Deposit";
-    const newNFT = await saveNftTransactionData(
-      userId,
-      fileUrl,
-      amount,
-      transactionType,
-      "", // accountName
-      "", // email
-      "", // bankName
-      "", // swiftCode
-      "", // bankAddress
-      "", // ethAmount
-      "", // additionalInfo
-      "", // walletName
-      "", // walletAddress
-      agentID
-    );
-
-    res.status(201).json({ message: "NFT submitted successfully!", nft: newNFT });
-  } catch (error) {
-    console.error("Error submitting NFT:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
 
 
 // Route to fetch all pending NFT deposits
@@ -1594,75 +1774,8 @@ router.get("/pending-deposits/:agentID", async (req, res) => {
 
 
 
-// Route to submit NFT withdrawal
-router.post("/nft-withdraw", async (req, res) => {
-  try {
-    const {
-      userId,
-      accountName,
-      email,
-      bankName,
-      swiftCode,
-      bankAddress,
-      ethAmount, // Withdrawal amount
-      additionalInfo,
-      walletName,
-      walletAddress,
-      agentID
-    } = req.body;
 
-    if (!userId || !email || !ethAmount || !agentID) {
-      return res.status(400).json({ message: "All required fields must be filled." });
-    }
 
-    const parsedEthAmount = parseFloat(ethAmount); // ✅ Convert to number
-
-    if (isNaN(parsedEthAmount) || parsedEthAmount <= 0) {
-      return res.status(400).json({ message: "Invalid withdrawal amount." });
-    }
-
-    // Fetch user balance
-    const user = await User.findOne({ userId });
-    if (!user) {
-      return res.status(404).json({ message: "User not found." });
-    }
-
-    const totalCharge = parsedEthAmount + 0.10; // ✅ Correct calculation
-
-    // Check if balance is enough
-    if (user.balance < totalCharge) {
-      return res.status(400).json({ message: "Insufficient balance." });
-    }
-
-    // Deduct balance
-    user.balance -= totalCharge;
-    await user.save(); // Save updated balance
-
-    // Save withdrawal transaction
-    const transactionType = "Withdrawal";
-    const newNFT = await saveNftTransactionData(
-      userId,
-      null, // No fileUrl for withdrawal
-      parsedEthAmount,
-      transactionType,
-      accountName,
-      email,
-      bankName,
-      swiftCode,
-      bankAddress,
-      parsedEthAmount, // ✅ Correct position
-      additionalInfo,
-      walletName,
-      walletAddress,
-      agentID // ✅ agentID at correct position
-    );
-
-    res.status(201).json({ message: "NFT withdrawal submitted successfully!", nft: newNFT });
-  } catch (error) {
-    console.error("Error submitting NFT withdrawal:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
 
 
 // Route to fetch all pending NFT withdrawals
