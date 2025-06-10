@@ -76,6 +76,7 @@ const transactionSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now }, // Automatically set timestamp
   transactionType: { type: String, required: true }, // Fixed field name
   description: { type: String, default: "" },
+  senderOrReceiver: { type: String, default: "" },
   accountName: { type: String, default: "" },
   email: { type: String, default: "" },
   bankName: { type: String, default: "" },
@@ -344,6 +345,8 @@ const saveTransaction = async ({
   walletName = "",
   walletAddress = "",
   agentID = "",
+  description = "",   // <-- Add this
+  senderOrReceiver = "",
   status = "pending"
 }) => {
   const transactionReference = `tx-${uuidv4()}`;
@@ -353,6 +356,8 @@ const saveTransaction = async ({
     fileUrl,
     amount,
     transactionType,
+    description,        // <-- Add this here too
+    senderOrReceiver,
     status,
     timestamp: new Date(),
     accountName,
@@ -368,6 +373,7 @@ const saveTransaction = async ({
 
   return await transaction.save();
 };
+
 
 router.get('/fetchWallets', async (req, res) => {
   // const { agentCode } = req.query; // Get agentCode from the query parameter
@@ -440,7 +446,8 @@ router.post("/eth-deposit", async (req, res) => {
       fileUrl,
       amount,
       agentID,
-      transactionType: "ETH Deposit",
+      transactionType: "Deposit",
+      description: "ETH Deposit",
       status: "pending"
     });
 
