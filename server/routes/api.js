@@ -427,6 +427,30 @@ router.post("/deposit", async (req, res) => {
   }
 });
 
+router.post("/eth-deposit", async (req, res) => {
+  try {
+    const { userId, fileUrl, amount, agentID } = req.body;
+
+    if (!userId || !fileUrl || !amount || !agentID) {
+      return res.status(400).json({ message: "All required fields must be provided." });
+    }
+
+    const transaction = await saveTransaction({
+      userId,
+      fileUrl,
+      amount,
+      agentID,
+      transactionType: "ETH Deposit",
+      status: "pending"
+    });
+
+    res.status(201).json({ message: "Deposit recorded successfully.", transaction });
+  } catch (error) {
+    console.error("Deposit error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 
 // Route to submit NFT withdrawal
 router.post("/withdraw", async (req, res) => {
