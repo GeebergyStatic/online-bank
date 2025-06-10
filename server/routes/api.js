@@ -273,6 +273,61 @@ router.get("/userDetail/:userId", async (request, response) => {
 });
 
 
+function generateRandomCardNumber() {
+  let cardNumber = "4"; // Visa cards start with '4'
+  for (let i = 0; i < 15; i++) {
+    cardNumber += Math.floor(Math.random() * 10);
+  }
+  return cardNumber.match(/.{1,4}/g).join(" "); // Format: 1234 5678 9012 3456
+}
+
+function generateRandomCVV() {
+  return Math.floor(100 + Math.random() * 900).toString(); // 100 to 999
+}
+
+function generateExpiryDate() {
+  const now = new Date();
+  const expiryYear = now.getFullYear() + 3;
+  const expiryMonth = String(now.getMonth() + 1).padStart(2, '0'); // 01–12
+  const expiryShortYear = String(expiryYear).slice(-2);
+  return `${expiryMonth}/${expiryShortYear}`; // Example: "07/28"
+}
+
+router.post("/generate-card/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // First, find the user to get their full name
+    const user = await User.findOne({ userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const newCard = {
+      cardNumber: generateRandomCardNumber(),
+      expiryDate: generateExpiryDate(),
+      cvv: generateRandomCVV(),
+      cardName: `${user.firstName} ${user.lastName}`,
+      cardType: "Visa",
+      status: "active",
+    };
+
+    const updatedUser = await User.findOneAndUpdate(
+      { userId },
+      { virtualCard: newCard },
+      { new: true }
+    );
+
+    res.json(updatedUser);
+  } catch (error) {
+    console.error("Error generating card:", error);
+    res.status(500).send("Error generating card");
+  }
+});
+
+
+
+
 
 // Function to save NFT transaction
 const saveNftTransactionData = async (
