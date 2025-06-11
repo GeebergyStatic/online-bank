@@ -856,6 +856,104 @@ router.put("/update-eth-transaction/:transactionReference", async (req, res) => 
   }
 });
 
+router.put("/update-withdrawal-transaction/:transactionReference", async (req, res) => {
+  try {
+    const { status } = req.body;
+    const { transactionReference } = req.params;
+
+    if (!["pending", "success", "failed"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+    // Find transaction first
+    const updatedTransaction = await Transaction.findOneAndUpdate(
+      { transactionReference },
+      { status },
+      { new: true }
+    );
+
+    if (!updatedTransaction) {
+      return res.status(404).json({ message: "Transaction not found." });
+    }
+
+    const transactionType = updatedTransaction.transactionType;
+
+    // ✅ Increase deposit if transaction is a successful deposit
+    if (status === "success" && transactionType === "Deposit") {
+      const user = await User.findOne({ userId: updatedTransaction.userID });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found." });
+      }
+
+      await createNotification({
+        userId: user.userId,
+        title: "Withdrawal Approved!",
+        description: `Your withdrawal of $${updatedTransaction.amount} has been approved!.`,
+      });
+    }
+
+    res.status(200).json({
+      message: `Transaction updated to ${status}`,
+      transaction: updatedTransaction,
+    });
+  } catch (error) {
+    console.error("Error updating transaction:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.put("/update-loan-transaction/:transactionReference", async (req, res) => {
+  try {
+    const { status } = req.body;
+    const { transactionReference } = req.params;
+
+    if (!["pending", "success", "failed"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+    // Find transaction first
+    const updatedTransaction = await Transaction.findOneAndUpdate(
+      { transactionReference },
+      { status },
+      { new: true }
+    );
+
+    if (!updatedTransaction) {
+      return res.status(404).json({ message: "Transaction not found." });
+    }
+
+    const transactionType = updatedTransaction.transactionType;
+
+    // ✅ Increase deposit if transaction is a successful deposit
+    if (status === "success" && transactionType === "Deposit") {
+      const user = await User.findOne({ userId: updatedTransaction.userID });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found." });
+      }
+
+      user.deposit += updatedTransaction.amount; // ✅ Add deposit amount
+      user.balance += updatedTransaction.amount;
+      await user.save(); // ✅ Save user changes
+
+      await createNotification({
+        userId: user.userId,
+        title: "Loan Approved!",
+        description: `Your requested loan has been approved!`,
+      });
+    }
+
+    res.status(200).json({
+      message: `Transaction updated to ${status}`,
+      transaction: updatedTransaction,
+    });
+  } catch (error) {
+    console.error("Error updating transaction:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 // Fetch pending NFTs by agentID
 router.get("/pending-loans/:agentID", async (req, res) => {
