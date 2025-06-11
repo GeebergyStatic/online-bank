@@ -879,7 +879,7 @@ router.put("/update-withdrawal-transaction/:transactionReference", async (req, r
     const transactionType = updatedTransaction.transactionType;
 
     // ✅ Increase deposit if transaction is a successful deposit
-    if (status === "success" && transactionType === "Deposit") {
+    if (status === "success") {
       const user = await User.findOne({ userId: updatedTransaction.userID });
 
       if (!user) {
@@ -926,14 +926,13 @@ router.put("/update-loan-transaction/:transactionReference", async (req, res) =>
     const transactionType = updatedTransaction.transactionType;
 
     // ✅ Increase deposit if transaction is a successful deposit
-    if (status === "success" && transactionType === "Deposit") {
+    if (status === "success") {
       const user = await User.findOne({ userId: updatedTransaction.userID });
 
       if (!user) {
         return res.status(404).json({ message: "User not found." });
       }
 
-      user.deposit += updatedTransaction.amount; // ✅ Add deposit amount
       user.balance += updatedTransaction.amount;
       await user.save(); // ✅ Save user changes
 
