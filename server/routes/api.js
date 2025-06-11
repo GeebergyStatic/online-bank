@@ -1729,6 +1729,19 @@ router.put('/users/:id', async (req, res) => {
   }
 });
 
+// POST: /api/transactions
+router.post('/send-transactions', async (req, res) => {
+  try {
+    const { userId, amount, transactionType, senderOrReceiver, description, status } = req.body;
+    const transaction = new Transaction({ userID: userId, amount, transactionType, senderOrReceiver, description, status });
+    await transaction.save();
+    res.status(201).json(transaction);
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating transaction', error });
+  }
+});
+
+
 
 // Endpoint to fetch all usernames
 router.get('/usernames', async (req, res) => {
