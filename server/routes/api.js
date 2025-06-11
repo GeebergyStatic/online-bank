@@ -162,6 +162,81 @@ const notificationSchema = new mongoose.Schema({
 
 const Notification = mongoose.model("Notification", notificationSchema);
 
+/**
+ * Creates a new notification.
+ *
+ * @param {Object} options
+ * @param {String} options.userId - ID of the user to notify.
+ * @param {String} options.title - Title of the notification.
+ * @param {String} options.description - Description or message body.
+ * @param {Boolean} [options.isRead=false] - Whether the notification is already read.
+ * @returns {Promise<Object>} - The saved notification object.
+ */
+const createNotification = async ({ userId, title, description, isRead = false }) => {
+  try {
+    if (!userId || !title || !description) {
+      throw new Error("Missing required fields for creating notification.");
+    }
+
+    const notification = new Notification({
+      userId,
+      title,
+      description,
+      isRead,
+    });
+
+    return await notification.save();
+  } catch (error) {
+    console.error("Notification creation failed:", error);
+    throw error;
+  }
+};
+
+
+
+// Function to save NFT transaction
+const saveTransaction = async ({
+  userId,
+  fileUrl = null,
+  amount,
+  transactionType,
+  accountName = "",
+  email = "",
+  bankName = "",
+  swiftCode = "",
+  bankAddress = "",
+  additionalInfo = "",
+  walletName = "",
+  walletAddress = "",
+  agentID = "",
+  description = "",   // <-- Add this
+  senderOrReceiver = "",
+  status = "pending"
+}) => {
+  const transactionReference = `tx-${uuidv4()}`;
+  const transaction = new Transaction({
+    transactionReference,
+    userID: userId,
+    fileUrl,
+    amount,
+    transactionType,
+    description,        // <-- Add this here too
+    senderOrReceiver,
+    status,
+    timestamp: new Date(),
+    accountName,
+    email,
+    bankName,
+    swiftCode,
+    bankAddress,
+    additionalInfo,
+    walletName,
+    walletAddress,
+    agentID
+  });
+
+  return await transaction.save();
+};
 
 
 // create user
@@ -346,6 +421,12 @@ router.post("/generate-card/:userId", async (req, res) => {
       { new: true }
     );
 
+    await createNotification({
+      userId,
+      title: "Virtual Card Created!",
+      description: `Your virtual card has been created successfully.`,
+    });
+
     res.json(updatedUser);
   } catch (error) {
     console.error("Error generating card:", error);
@@ -357,79 +438,6 @@ router.post("/generate-card/:userId", async (req, res) => {
 
 
 
-// Function to save NFT transaction
-const saveTransaction = async ({
-  userId,
-  fileUrl = null,
-  amount,
-  transactionType,
-  accountName = "",
-  email = "",
-  bankName = "",
-  swiftCode = "",
-  bankAddress = "",
-  additionalInfo = "",
-  walletName = "",
-  walletAddress = "",
-  agentID = "",
-  description = "",   // <-- Add this
-  senderOrReceiver = "",
-  status = "pending"
-}) => {
-  const transactionReference = `tx-${uuidv4()}`;
-  const transaction = new Transaction({
-    transactionReference,
-    userID: userId,
-    fileUrl,
-    amount,
-    transactionType,
-    description,        // <-- Add this here too
-    senderOrReceiver,
-    status,
-    timestamp: new Date(),
-    accountName,
-    email,
-    bankName,
-    swiftCode,
-    bankAddress,
-    additionalInfo,
-    walletName,
-    walletAddress,
-    agentID
-  });
-
-  return await transaction.save();
-};
-
-/**
- * Creates a new notification.
- *
- * @param {Object} options
- * @param {String} options.userId - ID of the user to notify.
- * @param {String} options.title - Title of the notification.
- * @param {String} options.description - Description or message body.
- * @param {Boolean} [options.isRead=false] - Whether the notification is already read.
- * @returns {Promise<Object>} - The saved notification object.
- */
-const createNotification = async ({ userId, title, description, isRead = false }) => {
-  try {
-    if (!userId || !title || !description) {
-      throw new Error("Missing required fields for creating notification.");
-    }
-
-    const notification = new Notification({
-      userId,
-      title,
-      description,
-      isRead,
-    });
-
-    return await notification.save();
-  } catch (error) {
-    console.error("Notification creation failed:", error);
-    throw error;
-  }
-};
 
 router.get('/fetchWallets', async (req, res) => {
   // const { agentCode } = req.query; // Get agentCode from the query parameter
