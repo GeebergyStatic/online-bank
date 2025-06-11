@@ -87,6 +87,7 @@ const userSchema = new mongoose.Schema({
   deposit: { type: Number, default: 0 },
   earnings: { type: Number, default: 0 },
   monthlyEarnings: { type: Number, default: 0 },
+  previousMonthlyEarnings: { type: Number, default: 0 },
   monthlySpent: { type: Number, default: 0 },
   ethBalance: { type: Number, default: 0 }, // Ethereum balance
 
