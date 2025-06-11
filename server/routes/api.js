@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const router = express.Router();
 const User = require('../model');
 const { MongoClient } = require('mongodb');
-const cron = require('node-cron');
+const cron = require("node-cron");
 const bcrypt = require('bcrypt');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
@@ -191,6 +191,24 @@ const createNotification = async ({ userId, title, description, isRead = false }
     throw error;
   }
 };
+
+// Runs at 12:01 AM on the 1st day of every month
+cron.schedule("1 0 1 * *", async () => {
+  try {
+    const users = await User.find({});
+
+    const updatePromises = users.map(user => {
+      user.previousMonthlyEarnings = user.monthlyEarnings || 0;
+      user.monthlyEarnings = 0;
+      return user.save();
+    });
+
+    await Promise.all(updatePromises);
+    console.log("Monthly earnings rollover completed successfully.");
+  } catch (error) {
+    console.error("Error in monthly rollover:", error);
+  }
+});
 
 
 
