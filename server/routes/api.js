@@ -479,7 +479,7 @@ router.get("/getUserNotifications", async (req, res) => {
       return res.status(400).json({ message: "User ID is required" });
     }
 
-    const notifications = await Notification.find({ userId }).sort({ timestamp: -1 });
+    const notifications = await Notification.find({ userId });
     res.status(200).json(notifications);
   } catch (error) {
     console.error("Error fetching notifications:", error);
