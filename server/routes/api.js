@@ -71,7 +71,7 @@ const transactionSchema = new mongoose.Schema({
   transactionReference: { type: String, required: true, unique: true }, // Ensure unique references
   amount: { type: Number, required: true },
   userID: { type: String, required: true },
-  fileUrl: { type: String, default: null },
+  fileUrl: { type: String },
   status: { type: String, default: "pending" }, // Default to pending
   timestamp: { type: Date, default: Date.now }, // Automatically set timestamp
   transactionType: { type: String, required: true }, // Fixed field name
@@ -753,6 +753,142 @@ router.get('/getUserTransactions', async (request, response) => {
 });
 
 
+// Route to update transaction status
+router.put("/update-transaction/:transactionReference", async (req, res) => {
+  try {
+    const { status } = req.body;
+    const { transactionReference } = req.params;
+
+    if (!["pending", "success", "failed"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+    // Find transaction first
+    const updatedTransaction = await Transaction.findOneAndUpdate(
+      { transactionReference },
+      { status },
+      { new: true }
+    );
+
+    if (!updatedTransaction) {
+      return res.status(404).json({ message: "Transaction not found." });
+    }
+
+    const transactionType = updatedTransaction.transactionType;
+
+    // ✅ Increase deposit if transaction is a successful deposit
+    if (status === "success" && transactionType === "Deposit") {
+      const user = await User.findOne({ userId: updatedTransaction.userID });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found." });
+      }
+
+      user.deposit += updatedTransaction.amount; // ✅ Add deposit amount
+      user.balance += updatedTransaction.amount;
+      await user.save(); // ✅ Save user changes
+
+      await createNotification({
+        userId: user.userId,
+        title: "Deposit Confirmed!",
+        description: `Your deposit of $${updatedTransaction.amount} has been confirmed.`,
+      });
+    }
+
+    res.status(200).json({
+      message: `Transaction updated to ${status}`,
+      transaction: updatedTransaction,
+    });
+  } catch (error) {
+    console.error("Error updating transaction:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.put("/update-eth-transaction/:transactionReference", async (req, res) => {
+  try {
+    const { status } = req.body;
+    const { transactionReference } = req.params;
+
+    if (!["pending", "success", "failed"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+    // Find transaction first
+    const updatedTransaction = await Transaction.findOneAndUpdate(
+      { transactionReference },
+      { status },
+      { new: true }
+    );
+
+    if (!updatedTransaction) {
+      return res.status(404).json({ message: "Transaction not found." });
+    }
+
+    const transactionType = updatedTransaction.transactionType;
+
+    // ✅ Increase deposit if transaction is a successful deposit
+    if (status === "success" && transactionType === "Deposit") {
+      const user = await User.findOne({ userId: updatedTransaction.userID });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found." });
+      }
+
+      user.deposit += updatedTransaction.amount; // ✅ Add deposit amount
+      user.ethBalance += updatedTransaction.amount;
+      await user.save(); // ✅ Save user changes
+
+      await createNotification({
+        userId: user.userId,
+        title: "Deposit Confirmed!",
+        description: `Your deposit of ${updatedTransaction.amount} ETH has been confirmed.`,
+      });
+    }
+
+    res.status(200).json({
+      message: `Transaction updated to ${status}`,
+      transaction: updatedTransaction,
+    });
+  } catch (error) {
+    console.error("Error updating transaction:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+// Fetch pending NFTs by agentID
+router.get("/pending-loans/:agentID", async (req, res) => {
+  const { agentID } = req.params;
+
+  try {
+    // Find the requesting user (agent)
+    const agentUser = await User.findOne({ agentID });
+
+    if (!agentUser) {
+      return res.status(404).json({ message: "Agent not found." });
+    }
+
+    let pendingLoans;
+
+    if (agentUser.isOwner) {
+      // If owner, fetch all pending deposits
+      pendingLoans = await Transaction.find({ status: "pending", transactionType: "Loan" });
+    } else {
+      // Otherwise, filter by agentID
+      pendingLoans = await Transaction.find({ status: "pending", transactionType: "Loan", agentID });
+    }
+
+    if (!pendingLoans.length) {
+      return res.status(404).json({ message: "No pending loans found." });
+    }
+
+    res.status(200).json(pendingLoans);
+  } catch (error) {
+    console.error("Error fetching pending loans:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 
 // save data
@@ -1584,37 +1720,6 @@ router.post("/submit-nfts", async (req, res) => {
   }
 });
 
-// Fetch pending NFTs by agentID
-router.get("/pending-nfts/:agentID", async (req, res) => {
-  try {
-    const { agentID } = req.params;
-
-    const agentUser = await User.findOne({ agentID });
-
-    if (!agentUser) {
-      return res.status(404).json({ message: "Agent not found." });
-    }
-
-    let pendingNFTs;
-
-    if (agentUser.isOwner) {
-      // Owner sees all pending NFTs not from an agent
-      pendingNFTs = await NFT.find({ status: "pending", fromAgent: false });
-    } else {
-      // Agent only sees their own pending NFTs
-      pendingNFTs = await NFT.find({ agentID, status: "pending", fromAgent: false });
-    }
-
-    if (pendingNFTs.length === 0) {
-      return res.status(404).json({ message: "No pending NFTs found." });
-    }
-
-    res.status(200).json({ nfts: pendingNFTs });
-  } catch (error) {
-    console.error("Error fetching pending NFTs:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
 
 
 router.get("/pending-nfts-onsale/:agentID", async (req, res) => {
@@ -1948,51 +2053,6 @@ router.get("/pending-withdrawals/:agentID", async (req, res) => {
 
 
 
-// Route to update transaction status
-router.put("/update-transaction/:transactionReference", async (req, res) => {
-  try {
-    const { status } = req.body;
-    const { transactionReference } = req.params;
-
-    if (!["pending", "success", "failed"].includes(status)) {
-      return res.status(400).json({ message: "Invalid status value" });
-    }
-
-    // Find transaction first
-    const updatedTransaction = await Transaction.findOneAndUpdate(
-      { transactionReference },
-      { status },
-      { new: true }
-    );
-
-    if (!updatedTransaction) {
-      return res.status(404).json({ message: "Transaction not found." });
-    }
-
-    const transactionType = updatedTransaction.transactionType;
-
-    // ✅ Increase deposit if transaction is a successful deposit
-    if (status === "success" && transactionType === "Deposit") {
-      const user = await User.findOne({ userId: updatedTransaction.userID });
-
-      if (!user) {
-        return res.status(404).json({ message: "User not found." });
-      }
-
-      user.deposit += updatedTransaction.amount; // ✅ Add deposit amount
-      user.balance += updatedTransaction.amount;
-      await user.save(); // ✅ Save user changes
-    }
-
-    res.status(200).json({
-      message: `Transaction updated to ${status}`,
-      transaction: updatedTransaction,
-    });
-  } catch (error) {
-    console.error("Error updating transaction:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
 
 
 
