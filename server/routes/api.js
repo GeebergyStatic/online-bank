@@ -137,6 +137,33 @@ const eventSchema = new mongoose.Schema({
 const Event = mongoose.model('Event', eventSchema);
 
 
+const notificationSchema = new mongoose.Schema({
+  userId: {
+    type: String,
+    required: true,
+  },
+  title: {
+    type: String,
+    required: true,
+  },
+  description: {
+    type: String,
+    required: true,
+  },
+  isRead: {
+    type: Boolean,
+    default: false,
+  },
+  timestamp: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+const Notification = mongoose.model("Notification", notificationSchema);
+
+
+
 // create user
 function generateAccountNumber() {
   return '31' + Math.floor(100000000 + Math.random() * 900000000);
@@ -374,6 +401,35 @@ const saveTransaction = async ({
   return await transaction.save();
 };
 
+/**
+ * Creates a new notification.
+ *
+ * @param {Object} options
+ * @param {String} options.userId - ID of the user to notify.
+ * @param {String} options.title - Title of the notification.
+ * @param {String} options.description - Description or message body.
+ * @param {Boolean} [options.isRead=false] - Whether the notification is already read.
+ * @returns {Promise<Object>} - The saved notification object.
+ */
+const createNotification = async ({ userId, title, description, isRead = false }) => {
+  try {
+    if (!userId || !title || !description) {
+      throw new Error("Missing required fields for creating notification.");
+    }
+
+    const notification = new Notification({
+      userId,
+      title,
+      description,
+      isRead,
+    });
+
+    return await notification.save();
+  } catch (error) {
+    console.error("Notification creation failed:", error);
+    throw error;
+  }
+};
 
 router.get('/fetchWallets', async (req, res) => {
   // const { agentCode } = req.query; // Get agentCode from the query parameter
@@ -407,6 +463,21 @@ router.get('/fetchEthWallets', async (req, res) => {
   }
 });
 
+router.get("/getUserNotifications", async (req, res) => {
+  const { userId } = req.query;
+
+  try {
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    const notifications = await Notification.find({ userId }).sort({ timestamp: -1 });
+    res.status(200).json(notifications);
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 
 router.post("/deposit", async (req, res) => {
@@ -579,7 +650,7 @@ router.post("/loan-application", async (req, res) => {
 
     const transactionPayload = {
       userId,
-      transactionType: "Loan Request",
+      transactionType: "Loan",
       status: "pending",
       amount,
       description: purpose, // Corrected key
@@ -627,10 +698,31 @@ router.post("/eth-withdraw", async (req, res) => {
       status: "completed",
     });
 
+    await createNotification({
+      userId,
+      title: "ETH Withdrawal Successful",
+      description: `Your withdrawal of ${ethAmount} ETH was successful.`,
+    });
+
     res.status(200).json({ message: "ETH withdrawal processed." });
   } catch (error) {
     console.error("ETH Withdrawal Error:", error);
     res.status(500).json({ message: "Internal server error." });
+  }
+});
+
+
+// Define a route to get user transactions
+router.get('/getUserTransactions', async (request, response) => {
+  const { userID } = request.query;
+
+  try {
+    // Create a query to filter transactions by the user's ID
+    const userTransactions = await Transaction.find({ userID });
+    response.status(200).json(userTransactions);
+  } catch (error) {
+    console.error('Error fetching user transactions: ', error);
+    response.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -1055,19 +1147,6 @@ router.post('/createTransactions', async (request, response) => {
 
 
 // GET USER TRANSACTIONS
-// Define a route to get user transactions
-router.get('/getUserTransactions', async (request, response) => {
-  const { userID } = request.query;
-
-  try {
-    // Create a query to filter transactions by the user's ID
-    const userTransactions = await Transaction.find({ userID });
-    response.status(200).json(userTransactions);
-  } catch (error) {
-    console.error('Error fetching user transactions: ', error);
-    response.status(500).json({ error: 'Internal Server Error' });
-  }
-});
 
 
 
