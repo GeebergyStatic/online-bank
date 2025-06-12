@@ -380,6 +380,29 @@ router.get("/userDetail/:userId", async (request, response) => {
 });
 
 
+// routes/user.js
+router.post('/verify-pin', async (req, res) => {
+  try {
+    const { userId, pin } = req.body;
+    const user = await User.findOne({ userId });
+
+    if (!user || !user.pin) {
+      return res.status(404).json({ success: false, message: "User or PIN not found" });
+    }
+
+    const isValid = await bcrypt.compare(pin, user.pin);
+    if (!isValid) {
+      return res.status(401).json({ success: false, message: "Invalid PIN" });
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+
 function generateRandomCardNumber() {
   let cardNumber = "4"; // Visa cards start with '4'
   for (let i = 0; i < 15; i++) {
