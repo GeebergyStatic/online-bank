@@ -95,6 +95,9 @@ const userSchema = new mongoose.Schema({
 
   virtualCard: virtualCardSchema, // Embedded subdocument
 
+  resetToken: { type: String },               // ✅ Required for password reset
+  resetTokenExpiry: { type: Date },           // ✅ Token expiration timestamp
+
   isUserActive: { type: Boolean, default: false },
   isOwner: { type: Boolean, default: false },
   hasPaid: { type: Boolean, default: false },
