@@ -90,4 +90,26 @@ const sendWelcomeEmail = async ({ email, username, accountNumber, accountType, c
     });
 };
 
-module.exports = { sendWelcomeEmail };
+const sendResetEmail = async ({ email, resetLink }) => {
+    const html = `
+     <h2>Reset Your Password</h2>
+        <p>Click the button below to reset your password:</p>
+        <a href="${resetLink}" style="
+          background:#2563eb;
+          color:white;
+          padding:10px 20px;
+          border-radius:5px;
+          text-decoration:none;
+        ">Reset Password</a>
+        <p>If you didn't request this, just ignore this email.</p>
+  `;
+
+    await resend.emails.send({
+        from: 'TrustLine Digital Bank <noreply@trustlinedigital.online>',
+        to: [email],
+        subject: 'Reset Your Password',
+        html,
+    });
+};
+
+module.exports = { sendWelcomeEmail, sendResetEmail };
