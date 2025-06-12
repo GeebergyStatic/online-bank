@@ -1728,7 +1728,6 @@ router.post('/send-transactions', async (req, res) => {
       status
     } = req.body;
 
-    // Save transaction
     const transaction = new Transaction({
       transactionReference,
       userID: userId,
@@ -1741,22 +1740,27 @@ router.post('/send-transactions', async (req, res) => {
 
     await transaction.save();
 
-    // Update user's earnings, monthlyEarnings, and balance
-    const user = await User.findOne({ userId }); // `userId` is a custom field in your schema
+    // Normalize transactionType and status for comparison
+    const isDeposit = transactionType?.toLowerCase() === 'deposit';
+    const isCompleted = status?.toLowerCase() === 'completed';
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    if (isDeposit && isCompleted) {
+      const user = await User.findOne({ userId });
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const amt = parseFloat(amount);
+
+      user.earnings = (user.earnings || 0) + amt;
+      user.monthlyEarnings = (user.monthlyEarnings || 0) + amt;
+      user.balance = (user.balance || 0) + amt;
+
+      await user.save();
     }
 
-    const amt = parseFloat(amount); // Ensure it's treated as a number
-
-    user.earnings = (user.earnings || 0) + amt;
-    user.monthlyEarnings = (user.monthlyEarnings || 0) + amt;
-    user.balance = (user.balance || 0) + amt;
-
-    await user.save();
-
-    res.status(201).json({ transaction, updatedUser: user });
+    res.status(201).json({ transaction });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error creating transaction', error });
