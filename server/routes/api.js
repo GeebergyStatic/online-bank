@@ -9,6 +9,7 @@ const bcrypt = require('bcrypt');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 
+const { sendWelcomeEmail } = require('../email');
 const SibApiV3Sdk = require('sib-api-v3-sdk');
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
 
@@ -294,22 +295,7 @@ router.post("/createUser", async (req, res) => {
     await newUser.save();
 
     // Send transactional email
-    const sendSmtpEmail = {
-      to: [{ email, name: username }],
-      templateId: 1, // 🔁 Replace with your Brevo Template ID
-      params: {
-        accountName: username,
-        accountNumber: accountNumber,
-        accountType: accountType,
-        currency: currencySymbol,
-        dashboardLink: "https://app.trustlinedigital.online/user/dashboard"
-      },
-      sender: { name: "TrustLine Digital Bank", email: "no-reply@trustlinedigital.online" }
-    };
-
-    await emailApi.sendTransacEmail(sendSmtpEmail)
-      .then(data => console.log(data))
-      .catch(error => console.error(error));
+    await sendWelcomeEmail({ email, username, accountNumber, accountType, currencySymbol });
 
     const { password: _, pin: __, ...safeUser } = newUser.toObject();
 
