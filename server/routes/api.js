@@ -6,10 +6,11 @@ const User = require('../model');
 const { MongoClient } = require('mongodb');
 const cron = require("node-cron");
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 
-const { sendWelcomeEmail } = require('../email');
+const { sendWelcomeEmail, sendResetEmail } = require('../email');
 const SibApiV3Sdk = require('sib-api-v3-sdk');
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
 
@@ -313,6 +314,51 @@ router.post("/createUser", async (req, res) => {
     });
   }
 });
+
+router.post('/request-reset', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    user.resetToken = token;
+    user.resetTokenExpiry = Date.now() + 1000 * 60 * 30; // 30 mins
+    await user.save();
+
+    const resetLink = `https://app.trustlinedigital.online/auth/reset-password/${token}`;
+
+    // Send transactional email
+    await sendResetEmail({ email, resetLink });
+
+    res.json({ message: 'Reset link sent.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Something went wrong.' });
+  }
+});
+
+router.post('/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body;
+  try {
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpiry: { $gt: Date.now() }
+    });
+    if (!user) return res.status(400).json({ message: 'Invalid or expired token' });
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetToken = undefined;
+    user.resetTokenExpiry = undefined;
+    await user.save();
+
+    res.json({ message: 'Password reset successful' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Could not reset password' });
+  }
+});
+
 
 router.post("/loginUser", async (req, res) => {
   const { emailOrUsername, password } = req.body;
