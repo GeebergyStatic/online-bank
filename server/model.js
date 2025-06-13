@@ -103,6 +103,12 @@ const userSchema = new mongoose.Schema({
     default: false,
   },
 
+  verificationToken: {
+    type: String,
+    required: false,
+  },
+
+
   isUserActive: { type: Boolean, default: false },
   isOwner: { type: Boolean, default: false },
   hasPaid: { type: Boolean, default: false },
