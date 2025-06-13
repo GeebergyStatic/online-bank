@@ -1798,6 +1798,38 @@ router.post('/send-transactions', async (req, res) => {
       status
     } = req.body;
 
+    const user = await User.findOne({ userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const amt = parseFloat(amount);
+    if (isNaN(amt) || amt <= 0) {
+      return res.status(400).json({ message: "Invalid amount" });
+    }
+
+    // Check if it's a withdrawal
+    const isWithdrawal = transactionType?.toLowerCase() === 'withdrawal';
+    const isDeposit = transactionType?.toLowerCase() === 'deposit';
+    const isCompleted = status?.toLowerCase() === 'completed';
+
+    if (isWithdrawal && isCompleted) {
+      if (user.balance < amt) {
+        return res.status(400).json({ message: "Insufficient balance for withdrawal" });
+      }
+
+      user.balance -= amt;
+      user.monthlySpent = (user.monthlySpent || 0) + amt;
+      await user.save();
+    }
+
+    if (isDeposit && isCompleted) {
+      user.earnings = (user.earnings || 0) + amt;
+      user.monthlyEarnings = (user.monthlyEarnings || 0) + amt;
+      user.balance = (user.balance || 0) + amt;
+      await user.save();
+    }
+
     const transaction = new Transaction({
       transactionReference,
       userID: userId,
@@ -1810,27 +1842,8 @@ router.post('/send-transactions', async (req, res) => {
 
     await transaction.save();
 
-    // Normalize transactionType and status for comparison
-    const isDeposit = transactionType?.toLowerCase() === 'deposit';
-    const isCompleted = status?.toLowerCase() === 'completed';
-
-    if (isDeposit && isCompleted) {
-      const user = await User.findOne({ userId });
-
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const amt = parseFloat(amount);
-
-      user.earnings = (user.earnings || 0) + amt;
-      user.monthlyEarnings = (user.monthlyEarnings || 0) + amt;
-      user.balance = (user.balance || 0) + amt;
-
-      await user.save();
-    }
-
     res.status(201).json({ transaction });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error creating transaction', error });
