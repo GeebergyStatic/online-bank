@@ -11,6 +11,7 @@ const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 
 const { sendWelcomeEmail, sendResetEmail } = require('../email');
+const verificationToken = crypto.randomBytes(32).toString("hex");
 const SibApiV3Sdk = require('sib-api-v3-sdk');
 const defaultClient = SibApiV3Sdk.ApiClient.instance;
 
@@ -284,19 +285,29 @@ router.post("/createUser", async (req, res) => {
 
     const newUserId = uuidv4();
     const accountNumber = generateAccountNumber();
+    const verificationToken = crypto.randomBytes(32).toString("hex");
 
     const newUser = new User({
       ...req.body,
       userId: newUserId,
       password: hashedPassword,
       pin: hashedPin,
-      accountNumber
+      accountNumber,
+      emailVerified: false,
+      verificationToken // ✅ Set it directly here
     });
 
     await newUser.save();
 
-    // Send transactional email
-    await sendWelcomeEmail({ email, username, accountNumber, accountType, currencySymbol });
+    // ✅ Now call your email function with the token
+    await sendWelcomeEmail({
+      email,
+      username,
+      accountNumber,
+      accountType,
+      currencySymbol,
+      verificationToken
+    });
 
     const { password: _, pin: __, ...safeUser } = newUser.toObject();
 
@@ -314,6 +325,22 @@ router.post("/createUser", async (req, res) => {
     });
   }
 });
+
+
+router.get("/verify-email", async (req, res) => {
+  const { token } = req.query;
+  if (!token) return res.status(400).json({ status: "error", message: "No token provided" });
+
+  const user = await User.findOne({ verificationToken: token });
+  if (!user) return res.status(400).json({ status: "error", message: "Invalid or expired token" });
+
+  user.emailVerified = true;
+  user.verificationToken = undefined;
+  await user.save();
+
+  res.json({ status: "success", message: "Email verified successfully" });
+});
+
 
 router.post('/request-reset', async (req, res) => {
   try {
