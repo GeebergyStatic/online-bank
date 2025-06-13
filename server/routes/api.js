@@ -485,7 +485,7 @@ router.post("/generate-card/:userId", async (req, res) => {
       cvv: generateRandomCVV(),
       cardName: `${user.firstName} ${user.lastName}`,
       cardType: "Visa",
-      status: "active",
+      status: "inactive",
     };
 
     const updatedUser = await User.findOneAndUpdate(
@@ -534,7 +534,7 @@ router.get('/fetchEthWallets', async (req, res) => {
   try {
     const ethWallets = await WalletAddress.find({
       isDefault: true,
-      type: "ETH"
+      type: "ETHEREUM"
     });
 
     return res.status(200).json(ethWallets); // Return only ETH wallets
@@ -702,6 +702,7 @@ router.post("/withdraw", async (req, res) => {
 
     // Deduct balance and save user
     user.balance -= amountToWithdraw;
+    user.monthlySpent += amountToWithdraw;
     await user.save();
 
     // Save transaction
