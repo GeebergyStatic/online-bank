@@ -399,6 +399,10 @@ router.post("/loginUser", async (req, res) => {
       return res.status(400).json({ message: "User not found" });
     }
 
+    if (!user.emailVerified) {
+      return res.status(403).json({ message: "Please verify your email before logging in." });
+    }
+
     const passwordMatch = await bcrypt.compare(password, user.password);
 
     if (!passwordMatch) {
