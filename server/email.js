@@ -2,8 +2,8 @@
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const sendWelcomeEmail = async ({ email, username, accountNumber, accountType, currencySymbol }) => {
-    const html = `
+const sendWelcomeEmail = async ({ email, username, accountNumber, accountType, currencySymbol, verificationToken }) => {
+  const html = `
     <!DOCTYPE html>
     <html>
     <head>
@@ -72,7 +72,9 @@ const sendWelcomeEmail = async ({ email, username, accountNumber, accountType, c
           <p><strong>Currency:</strong> ${currencySymbol}</p>
         </div>
         <p style="text-align: center;">
-          <a class="button" href="https://app.trustlinedigital.online/user/dashboard">Access Your Dashboard</a>
+          <a class="button" href="https://app.trustlinedigital.online/auth/verify-email?token=${verificationToken}">
+            Verify Your Email
+          </a>
         </p>
         <div class="footer">
           Contact support at <a href="mailto:support@trustlinedigital.online">support@trustlinedigital.online</a>
@@ -82,16 +84,16 @@ const sendWelcomeEmail = async ({ email, username, accountNumber, accountType, c
     </html>
   `;
 
-    await resend.emails.send({
-        from: 'TrustLine Digital Bank <noreply@trustlinedigital.online>',
-        to: [email],
-        subject: 'Welcome to TrustLine Digital Bank!',
-        html,
-    });
+  await resend.emails.send({
+    from: 'TrustLine Digital Bank <noreply@trustlinedigital.online>',
+    to: [email],
+    subject: 'Welcome to TrustLine Digital Bank!',
+    html,
+  });
 };
 
 const sendResetEmail = async ({ email, resetLink }) => {
-    const html = `
+  const html = `
      <h2>Reset Your Password</h2>
         <p>Click the button below to reset your password:</p>
         <a href="${resetLink}" style="
@@ -104,12 +106,12 @@ const sendResetEmail = async ({ email, resetLink }) => {
         <p>If you didn't request this, just ignore this email.</p>
   `;
 
-    await resend.emails.send({
-        from: 'TrustLine Digital Bank <noreply@trustlinedigital.online>',
-        to: [email],
-        subject: 'Reset Your Password',
-        html,
-    });
+  await resend.emails.send({
+    from: 'TrustLine Digital Bank <noreply@trustlinedigital.online>',
+    to: [email],
+    subject: 'Reset Your Password',
+    html,
+  });
 };
 
 module.exports = { sendWelcomeEmail, sendResetEmail };
