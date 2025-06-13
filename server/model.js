@@ -98,6 +98,11 @@ const userSchema = new mongoose.Schema({
   resetToken: { type: String },               // ✅ Required for password reset
   resetTokenExpiry: { type: Date },           // ✅ Token expiration timestamp
 
+  emailVerified: {
+    type: Boolean,
+    default: false,
+  },
+
   isUserActive: { type: Boolean, default: false },
   isOwner: { type: Boolean, default: false },
   hasPaid: { type: Boolean, default: false },
