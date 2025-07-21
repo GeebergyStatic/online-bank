@@ -274,11 +274,19 @@ router.post("/createUser", async (req, res) => {
     });
 
     if (existingUser) {
+      let conflictField = '';
+      if (existingUser.email === email) {
+        conflictField = 'email';
+      } else if (existingUser.username === username) {
+        conflictField = 'username';
+      }
+
       return res.status(400).send({
-        status: "failed",
-        message: "Email or username already exists"
+        status: 'failed',
+        message: `${conflictField.charAt(0).toUpperCase() + conflictField.slice(1)} already exists`
       });
     }
+
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const hashedPin = pin ? await bcrypt.hash(pin, 10) : undefined;
