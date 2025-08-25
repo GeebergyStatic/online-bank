@@ -1852,7 +1852,7 @@ router.post('/send-transactions', async (req, res) => {
     const isDeposit = transactionType?.toLowerCase() === 'deposit';
     const isCompleted = status?.toLowerCase() === 'completed';
 
-    if (isWithdrawal && isCompleted) {
+    if (isWithdrawal) {
       if (user.balance < amt) {
         return res.status(400).json({ message: "Insufficient balance for withdrawal" });
       }
