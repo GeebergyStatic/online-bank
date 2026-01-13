@@ -400,7 +400,10 @@ router.post("/loginUser", async (req, res) => {
 
   try {
     const user = await User.findOne({
-      $or: [{ email: emailOrUsername }, { username: emailOrUsername }],
+      $or: [
+        { email: { $regex: `^${emailOrUsername}$`, $options: "i" } },
+        { username: { $regex: `^${emailOrUsername}$`, $options: "i" } },
+      ],
     });
 
     if (!user) {
@@ -408,7 +411,9 @@ router.post("/loginUser", async (req, res) => {
     }
 
     if (!user.emailVerified) {
-      return res.status(403).json({ message: "Please verify your email before logging in." });
+      return res
+        .status(403)
+        .json({ message: "Please verify your email before logging in." });
     }
 
     const passwordMatch = await bcrypt.compare(password, user.password);
@@ -427,6 +432,7 @@ router.post("/loginUser", async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 });
+
 
 router.post("/addUser", async (request, response) => {
   const userDetails = new User(request.body);
