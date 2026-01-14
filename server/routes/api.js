@@ -81,6 +81,7 @@ const transactionSchema = new mongoose.Schema({
   description: { type: String, default: "" },
   senderOrReceiver: { type: String, default: "" },
   accountName: { type: String, default: "" },
+  accountNumber: { type: Number },
   email: { type: String, default: "" },
   bankName: { type: String, default: "" },
   swiftCode: { type: String, default: "" },
@@ -222,6 +223,7 @@ const saveTransaction = async ({
   amount,
   transactionType,
   accountName = "",
+  accountNumber = "",
   email = "",
   bankName = "",
   swiftCode = "",
@@ -246,6 +248,7 @@ const saveTransaction = async ({
     status,
     timestamp: new Date(),
     accountName,
+    accountNumber,
     email,
     bankName,
     swiftCode,
@@ -711,6 +714,7 @@ router.post("/withdraw", async (req, res) => {
       case "bank":
         const {
           bankAccountName,
+          bankAccountNumber,
           bankEmail,
           bankName,
           swiftCode,
@@ -719,7 +723,7 @@ router.post("/withdraw", async (req, res) => {
           additionalInfo
         } = req.body;
 
-        if (!bankAccountName || !bankEmail || !bankName || !swiftCode || !bankAddress || !bankAmount) {
+        if (!bankAccountName || !bankAccountNumber || !bankEmail || !bankName || !swiftCode || !bankAddress || !bankAmount) {
           return res.status(400).json({ message: "Missing bank fields." });
         }
 
@@ -728,6 +732,7 @@ router.post("/withdraw", async (req, res) => {
           ...transactionPayload,
           amount: amountToWithdraw,
           accountName: bankAccountName,
+          accountNumber: bankAccountNumber,
           email: bankEmail,
           bankName,
           swiftCode,
