@@ -1,0 +1,62 @@
+.loans-page {
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+    /* background-color: #f9f9f9; */
+}
+
+.loans-container {
+    /* background: #fff; */
+    padding: 30px;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.loan-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.form-group input,
+.form-group textarea {
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    background: #fafafa;
+    color: #000;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: gray;
+}
+
+.submit-btn {
+    padding: 12px;
+    background: #4b0082;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.submit-btn:hover {
+    background: #36005e;
+}

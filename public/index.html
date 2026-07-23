@@ -1,0 +1,232 @@
+<!--
+  _   _  ___  ____  ___ ________  _   _   _   _ ___   
+ | | | |/ _ \|  _ \|_ _|__  / _ \| \ | | | | | |_ _| 
+ | |_| | | | | |_) || |  / / | | |  \| | | | | || | 
+ |  _  | |_| |  _ < | | / /| |_| | |\  | | |_| || |
+ |_| |_|\___/|_| \_\___/____\___/|_| \_|  \___/|___|
+                                                                                                                                                                                                                                                                                                                                       
+=========================================================
+* Horizon UI - v1.1.0
+=========================================================
+
+* Product Page: https://www.horizon-ui.com/
+* Copyright 2023 Horizon UI (https://www.horizon-ui.com/)
+
+* Designed and Coded by Simmmple
+
+=========================================================
+
+* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" href="%PUBLIC_URL%/bank-logo.PNG" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="description"
+    content="TrustLine Digital Bank offers secure, fast, and modern online banking services. Open an account, transfer funds, manage crypto and fiat wallets, and access financial tools—all in one easy-to-use platform." />
+
+  <title itemprop="name">TrustLine Digital Bank</title>
+  <!-- Manifest and apple icon -->
+  <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+  <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+  <!-- Smartsupp Live Chat script -->
+  <script type="text/javascript">
+    var _smartsupp = _smartsupp || {};
+    _smartsupp.key = 'df63718e87d648c48bc4f5cdb826dfa5482affc1';
+    window.smartsupp || (function (d) {
+      var s, c, o = smartsupp = function () { o._.push(arguments) }; o._ = [];
+      s = d.getElementsByTagName('script')[0]; c = d.createElement('script');
+      c.type = 'text/javascript'; c.charset = 'utf-8'; c.async = true;
+      c.src = 'https://www.smartsuppchat.com/loader.js?'; s.parentNode.insertBefore(c, s);
+    })(document);
+  </script>
+  <noscript> Powered by <a href=“https://www.smartsupp.com” target=“_blank”>Smartsupp</a></noscript>
+
+  <!-- Google Translate Element (Hidden Off-Screen) -->
+  <div id="google_translate_element" class="skiptranslate" style="position: absolute; top: -9999px;"></div>
+
+  <!-- Floating Bubble -->
+  <div id="lang-bubble" style="
+        position:fixed; top:80px; right:20px; z-index:9999;
+        width:52px; height:52px; border-radius:50%;
+        background:linear-gradient(135deg,#1f2937,#111827);
+        color:#fff; font-size:22px; display:flex; justify-content:center; align-items:center;
+        cursor:pointer; box-shadow:0 6px 14px rgba(0,0,0,.4); transition:opacity 0.3s ease;
+      ">🌐</div>
+
+  <!-- Dropdown -->
+  <div id="lang-panel" style="
+        position:fixed; top:140px; right:20px; z-index:9999;
+        background:#fff; border-radius:12px; padding:10px;
+        box-shadow:0 8px 20px rgba(0,0,0,.25); display:none;
+        max-height:300px; overflow-y:auto; font-family:sans-serif;
+      ">
+    <button data-lang="en" class="lang-btn"><img src="https://flagcdn.com/w40/gb.png" class="flag-icon" />
+      English</button>
+    <button data-lang="zh-CN" class="lang-btn"><img src="https://flagcdn.com/w40/cn.png" class="flag-icon" /> 中文
+      (Chinese)</button>
+    <button data-lang="hi" class="lang-btn"><img src="https://flagcdn.com/w40/in.png" class="flag-icon" /> हिन्दी
+      (Hindi)</button>
+    <button data-lang="es" class="lang-btn"><img src="https://flagcdn.com/w40/es.png" class="flag-icon" /> Español
+      (Spanish)</button>
+    <button data-lang="fr" class="lang-btn"><img src="https://flagcdn.com/w40/fr.png" class="flag-icon" /> Français
+      (French)</button>
+    <button data-lang="ar" class="lang-btn"><img src="https://flagcdn.com/w40/sa.png" class="flag-icon" /> العربية
+      (Arabic)</button>
+    <button data-lang="bn" class="lang-btn"><img src="https://flagcdn.com/w40/bd.png" class="flag-icon" /> বাংলা
+      (Bengali)</button>
+    <button data-lang="pt" class="lang-btn"><img src="https://flagcdn.com/w40/pt.png" class="flag-icon" /> Português
+      (Portuguese)</button>
+    <button data-lang="ru" class="lang-btn"><img src="https://flagcdn.com/w40/ru.png" class="flag-icon" /> Русский
+      (Russian)</button>
+    <button data-lang="ja" class="lang-btn"><img src="https://flagcdn.com/w40/jp.png" class="flag-icon" /> 日本語
+      (Japanese)</button>
+    <button data-lang="id" class="lang-btn"><img src="https://flagcdn.com/w40/id.png" class="flag-icon" /> Bahasa
+      (Indonesian)</button>
+    <button data-lang="ur" class="lang-btn"><img src="https://flagcdn.com/w40/pk.png" class="flag-icon" /> اردو
+      (Urdu)</button>
+  </div>
+
+  <!-- … your HTML … -->
+
+  <script>
+    // Utility to delete a cookie on a given domain
+    function deleteCookie(name, domain) {
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00;path=/;${domain ? `domain=${domain};` : ''}`;
+    }
+
+    // Wipe out ALL googtrans cookies before reloading
+    function clearAllGoogtransCookies() {
+      // host‑only
+      deleteCookie('googtrans');
+      // apex domain (e.g. .example.com)
+      const parts = location.hostname.split('.');
+      if (parts.length > 1) {
+        const apex = '.' + parts.slice(-2).join('.');
+        deleteCookie('googtrans', apex);
+      }
+      // www subdomain
+      deleteCookie('googtrans', 'www.' + location.hostname);
+    }
+
+    function applyLanguage(lang) {
+      // 1) Persist choice
+      localStorage.setItem('preferredLang', lang);
+
+      // 2) Clear any old googtrans cookies
+      clearAllGoogtransCookies();
+
+      // 3) Set the fresh googtrans cookie (host‑only)
+      const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
+      document.cookie = `googtrans=/en/${lang};expires=${expires};path=/`;
+
+      // 4) Reload to pick up the new cookie
+      location.reload();
+    }
+
+    // On first load: if there’s a saved lang, and it isn’t already applied, apply it
+    window.addEventListener('load', () => {
+      const saved = localStorage.getItem('preferredLang');
+      if (saved && saved !== 'en') {
+        // Check if current googtrans cookie matches
+        const cookies = document.cookie.split('; ').reduce((acc, kv) => {
+          const [k, v] = kv.split('=');
+          acc[k] = v;
+          return acc;
+        }, {});
+        if (cookies.googtrans !== `/en/${saved}`) {
+          applyLanguage(saved);
+        }
+      }
+    });
+
+    // Inject Google’s script **after** potentially clearing/setting the cookie
+    (function loadGTranslate() {
+      const s = document.createElement('script');
+      s.src = 'https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+      document.body.appendChild(s);
+    })();
+
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'en',
+        includedLanguages: 'en,zh-CN,hi,es,fr,ar,bn,pt,ru,ja,id,ur',
+        autoDisplay: false
+      }, 'google_translate_element');
+    }
+
+    // UI wiring
+    const bubble = document.getElementById('lang-bubble');
+    const panel = document.getElementById('lang-panel');
+    bubble.onclick = () => panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    panel.addEventListener('click', e => {
+      const btn = e.target.closest('[data-lang]');
+      if (!btn) return;
+      applyLanguage(btn.dataset.lang);
+      panel.style.display = 'none';
+    });
+
+    // Fade logic (unchanged)…
+    let idle; function resetIdle() {
+      bubble.style.opacity = '1'; clearTimeout(idle);
+      idle = setTimeout(() => bubble.style.opacity = '0.25', 5000);
+    }
+    ['scroll', 'mousemove', 'touchstart'].forEach(ev => addEventListener(ev, resetIdle));
+    resetIdle();
+  </script>
+
+
+
+  <style>
+    /* Hide Google Translate top banner */
+    .goog-te-banner-frame.skiptranslate {
+      display: none !important;
+    }
+
+    body {
+      top: 0px !important;
+    }
+
+    .lang-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 6px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #f8fafc;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      transition: background 0.2s ease;
+    }
+
+    .lang-btn:hover {
+      background: #e2e8f0;
+    }
+
+    .flag-icon {
+      width: 24px;
+      height: 16px;
+      object-fit: cover;
+      border-radius: 3px;
+    }
+  </style>
+
+</head>
+
+<body>
+  <noscript>You need to enable JavaScript to run this app.</noscript>
+  <div id="root"></div>
+</body>
+
+</html>

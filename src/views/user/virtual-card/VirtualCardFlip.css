@@ -1,0 +1,82 @@
+/* VirtualCardFlip.css */
+.card-and-info-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+@media (min-width: 768px) {
+    .card-and-info-wrapper {
+        flex-direction: row;
+        align-items: flex-start;
+        justify-content: center;
+    }
+}
+
+.card-container {
+    width: 100%;
+    max-width: 400px;
+    aspect-ratio: 400 / 250;
+    perspective: 1000px;
+    margin: 20px auto;
+    cursor: pointer;
+}
+
+.card {
+    width: 100%;
+    height: 100%;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    transition: transform 0.6s ease-in-out;
+    background: linear-gradient(145deg, #f2f2f2, #cccccc);
+    background-size: cover;
+    background-blend-mode: overlay;
+}
+
+.card-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border-radius: 20px;
+}
+
+.card-details {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 300px;
+}
+
+.field label {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.field-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.field-content input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background: #f9f9f9;
+    font-size: 14px;
+}
+
+.field-content button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #555;
+}
+
+.field-content button:hover {
+    color: #000;
+}

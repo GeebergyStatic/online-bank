@@ -1,0 +1,199 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600&display=swap');
+
+body {
+  font-family: "DM Sans", sans-serif;
+}
+
+/* Hide the top banner */
+.goog-te-banner-frame.skiptranslate {
+  display: none !important;
+}
+
+
+
+/* Remove any other possible banner container */
+.goog-te-combo,
+.goog-te-gadget-simple {
+  margin-top: 0px !important;
+}
+
+/* Remove weird padding/margins */
+body>.skiptranslate {
+  display: none !important;
+}
+
+option {
+  color: black;
+}
+
+.custom-toast {
+  background: rgba(0, 0, 0, 0.65) !important;
+  backdrop-filter: blur(15px);
+  color: white !important;
+  font-family: 'Manrope', sans-serif !important;
+  font-size: 16px;
+}
+
+.agent-info-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.agent-label {
+  font-weight: 600;
+  color: #333;
+}
+
+.copy-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+}
+
+.copy-btn svg:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}
+
+.admin-link {
+  margin-top: 8px;
+  display: inline-block;
+  color: #333;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.admin-link:hover {
+  text-decoration: underline;
+  color: #9F00FF;
+}
+
+.tab-toggle-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.custom-tab-btn {
+  min-width: 120px;
+  padding: 10px 16px;
+  background-color: white;
+  color: #9F00FF;
+  border: 2px solid #9F00FF;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  flex: 1 1 auto;
+}
+
+.custom-tab-btn:hover {
+  background-color: #f2e6ff;
+}
+
+.custom-tab-btn.active {
+  background-color: #9F00FF;
+  color: white;
+}
+
+
+.crypto-deposit-container {
+  padding: 1.5rem;
+  background-color: #121212;
+  color: #f1f1f1;
+}
+
+.section-title {
+  color: #ffffff;
+  margin-bottom: 0.8rem;
+}
+
+.info-text {
+  display: block;
+  background: #222;
+  border-left: 4px solid #ffc107;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1rem;
+  color: #ffc107;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.custom-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.custom-task-card {
+  background-color: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  color: #eaeaea;
+}
+
+.proof-image {
+  width: 150px;
+  border-radius: 6px;
+  margin: 0.5rem 0;
+}
+
+.spinner-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1rem;
+  gap: 0.75rem;
+}
+
+.approve-btn,
+.decline-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.approve-btn {
+  background-color: #28a745;
+  color: #fff;
+}
+
+.approve-btn:hover {
+  background-color: #218838;
+}
+
+.decline-btn {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.decline-btn:hover {
+  background-color: #c82333;
+}
+
+.no-deposits-text {
+  color: #ffc107;
+  text-align: center;
+  font-style: italic;
+}
